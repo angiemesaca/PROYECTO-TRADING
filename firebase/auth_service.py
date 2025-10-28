@@ -23,3 +23,4 @@ class AuthService:
             import traceback
             print("🔥 ERROR LOGIN (AUTH):", traceback.format_exc())
             return None
+            
