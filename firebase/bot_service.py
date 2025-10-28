@@ -105,3 +105,4 @@ class BotService:
         except Exception as e:
             print(f"Error al leer trade log: {e}")
             return {}
+            
