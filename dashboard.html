@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="text-center mb-4">
+    Bienvenido, {{ profile.username | capitalize }}
+</h2>
+
+<div class="bot-control-panel">
+    
+    <h3>Control del Bot</h3>
+    
+    <div class="bot-status">
+        {% if settings.isActive %}
+            <p>Estado: <span class="status-active">Activado</span></p>
+            <p>El bot está operando según tus ajustes.</p>
+        {% else %}
+            <p>Estado: <span class="status-inactive">Desactivado</span></p>
+            <p>El bot está en pausa. Actívalo para comenzar.</p>
+        {% endif %}
+    </div>
+
+    <div class="bot-actions">
+        {% if settings.isActive %}
+            <form action="{{ url_for('deactivate_bot') }}" method="post">
+                <button type="submit" class="button-deactivate">Desactivar Bot</button>
+            </form>
+        {% else %}
+            <form action="{{ url_for('activate_bot') }}" method="post">
+                <button type="submit" class="button-activate">Activar Bot</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <hr>
+
+    <div class="bot-links">
+        <p>Configura tu estrategia o revisa tus ganancias:</p>
+        <a href="{{ url_for('bot_settings') }}" class="button-link">Ir a Ajustes</a>
+        <a href="{{ url_for('performance') }}" class="button-link">Ver Rendimientos</a>
+    </div>
+
+</div>
+
+{% endblock %}
