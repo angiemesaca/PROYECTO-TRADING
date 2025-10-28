@@ -1,4 +1,4 @@
-# firebase_config.py (CORREGIDO - Versión Simple)
+# firebase_config.py ( CORREGIDO - Versión Simple )
 
 import pyrebase
 
