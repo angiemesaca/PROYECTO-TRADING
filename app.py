@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from viewmodels.main_viewmodel import MainViewModel
+from viewmodels.main_viewmodel import MainViewModel 
 
 app = Flask(__name__)
 app.secret_key = "clave_secreto_seguro"
@@ -220,3 +220,4 @@ def generate_mock():
 if __name__ == "__main__":
     print("Iniciando servidor...")
     app.run(debug=True)
+    
