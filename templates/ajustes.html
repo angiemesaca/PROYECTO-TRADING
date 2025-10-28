@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>Ajustes del Bot</h2>
+    <p>Configura los parámetros de operación de tu bot.</p>
+
+    <form action="{{ url_for('bot_settings') }}" method="post" class="profile-form">
+        
+        <label for="riesgo">Tolerancia al Riesgo del Bot</label>
+        <select name="riesgo" id="riesgo">
+            <option value="bajo" {% if settings.riesgo == 'bajo' %}selected{% endif %}>Bajo</option>
+            <option value="medio" {% if settings.riesgo == 'medio' %}selected{% endif %}>Medio</option>
+            <option value="alto" {% if settings.riesgo == 'alto' %}selected{% endif %}>Alto</option>
+        </select>
+
+        <label for="activo">Activo (Símbolo)</label>
+        <select name="activo" id="activo">
+            <option value="crypto_btc_usd" {% if settings.activo == 'crypto_btc_usd' %}selected{% endif %}>Cripto: BTC/USD</option>
+            <option value="forex_eur_usd" {% if settings.activo == 'forex_eur_usd' %}selected{% endif %}>Forex: EUR/USD</option>
+            <option value="commodity_oro" {% if settings.activo == 'commodity_oro' %}selected{% endif %}>Commodity: Oro (XAU)</option>
+        </select>
+        
+        <label for="indicadores">Indicadores (separados por coma)</label>
+        <input type="text" name="indicadores" id="indicadores" value="{{ settings.indicadores }}" required>
+
+        <label for="horario">Horario de Operación (Ej: 09:00-17:00)</label>
+        <input type="text" name="horario" id="horario" value="{{ settings.horario }}" required>
+
+        <button type="submit">Guardar Ajustes del Bot</button>
+    </form>
+{% endblock %}
