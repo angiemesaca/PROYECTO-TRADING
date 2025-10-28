@@ -49,3 +49,4 @@ class DBService:
             {"id": "stocks", "name": "Acciones"},
             {"id": "forex", "name": "Divisas (Forex)"}
         ]
+        
