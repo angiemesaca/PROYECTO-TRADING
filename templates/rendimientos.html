@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block content %}
+
+    <h2 class="text-center mb-4">Rendimiento del Bot</h2>
+    
+    <h4 style="color: var(--medium-gray); text-align: center;">Avance de Capital (PnL Acumulado)</h4>
+    <canvas id="graficoRendimiento" width="400" height="150"></canvas>
+    
+    <hr style="margin: 30px 0;">
+
+    <h4 style="color: var(--medium-gray); text-align: center;">Historial de Operaciones</h4>
+    <table class="trade-table">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Activo</th>
+                <th>Tipo</th>
+                <th>Precio</th>
+                <th>PnL ($)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for trade in trades %}
+            <tr>
+                <td>{{ trade.timestamp }}</td>
+                <td>{{ trade.asset }}</td>
+                <td class="{{ 'tipo-buy' if trade.type == 'buy' else 'tipo-sell' }}">
+                    {{ trade.type | capitalize }}
+                </td>
+                <td>${{ "%.2f"|format(trade.price) }}</td>
+                <td class="{{ 'pnl-pos' if trade.pnl > 0 else 'pnl-neg' }}">
+                    {{ "%.2f"|format(trade.pnl) }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script id="data" type="application/json">
+        {"labels": {{ labels|tojson|safe }}, "pnl_data": {{ pnl_data|tojson|safe }}}
+    </script>
+    <script>
+        const data = JSON.parse(document.getElementById('data').textContent);
+        const ctx = document.getElementById('graficoRendimiento').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'PnL Acumulado ($)',
+                    data: data.pnl_data,
+                    borderColor: 'rgb(0, 100, 200)', // Un color azul
+                    borderWidth: 2,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: false },
+                    x: {}
+                }
+            }
+        });
+    </script>
+
+{% endblock %}

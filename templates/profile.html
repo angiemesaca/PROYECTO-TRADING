@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>Configuración de Perfil</h2>
+    <p>Hola, <strong>{{ profile.username }}</strong> ({{ profile.email }}).</p>
+    <p>Ajusta tu perfil de trading para personalizar tu experiencia.</p>
+
+    <form action="{{ url_for('profile') }}" method="post" class="profile-form">
+        
+        <label for="username">Nombre de Usuario</label>
+        <input type="text" name="username" id="username" value="{{ profile.username }}" required>
+        
+        <label for="market">Mercado de Operación</label>
+        <select name="market" id="market">
+            {% for market in markets %}
+                <option value="{{ market.id }}" {% if profile.selected_market == market.id %}selected{% endif %}>
+                    {{ market.name }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="risk">Tolerancia al Riesgo</label>
+        <select name="risk" id="risk">
+            <option value="bajo" {% if profile.risk == 'bajo' %}selected{% endif %}>Bajo</option>
+            <option value="medio" {% if profile.risk == 'medio' %}selected{% endif %}>Medio</option>
+            <option value="alto" {% if profile.risk == 'alto' %}selected{% endif %}>Alto</option>
+        </select>
+
+        <label for="experience">Nivel de Experiencia</label>
+        <select name="experience" id="experience">
+            <option value="novato" {% if profile.experience == 'novato' %}selected{% endif %}>Novato</option>
+            <option value="intermedio" {% if profile.experience == 'intermedio' %}selected{% endif %}>Intermedio</option>
+            <option value="avanzado" {% if profile.experience == 'avanzado' %}selected{% endif %}>Avanzado</option>
+        </select>
+
+        <button type="submit">Guardar Cambios</button>
+    </form>
+
+    <hr style="margin: 30px 0;">
+    <div class="delete-zone">
+        <h3>Zona de Peligro</h3>
+        <p>Esta acción no se puede deshacer. Esto borrará permanentemente tu perfil.</p>
+        
+        <form action="{{ url_for('delete_profile') }}" method="post" 
+              onsubmit="return confirm('¿Estás SEGURO de que quieres eliminar tu perfil? Esta acción es irreversible.');">
+            
+            <button type="submit" class="delete-button">Eliminar mi perfil</button>
+        </form>
+    </div>
+{% endblock %}
