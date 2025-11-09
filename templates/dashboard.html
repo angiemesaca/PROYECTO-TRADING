@@ -42,20 +42,28 @@
                 </div>
 
                 <!-- 
-                    NOTA: Estos botones están deshabilitados porque usamos el modo Backtest.
-                    El 'isActive' solo se usa para la IA, no para el bot "en vivo".
+                  ¡BOTONES ARREGLADOS!
+                  Ahora están dentro de formularios y SÍ funcionan.
+                  (Ya no están "disabled").
                 -->
                 {% if settings.isActive %}
-                    <button class="btn btn-danger btn-lg w-100" disabled>
-                        <i class="bi bi-stop-circle"></i> 
-                        Desactivar Bot (Modo Backtest)
-                    </button>
+                    <form action="{{ url_for('deactivate_bot') }}" method="POST">
+                        <button type="submit" class="btn btn-danger btn-lg w-100">
+                            <i class="bi bi-stop-circle"></i> 
+                            Desactivar Bot
+                        </button>
+                    </form>
                 {% else %}
-                    <button class="btn btn-success btn-lg w-100" disabled>
-                        <i class="bi bi-play-circle"></i> 
-                        Activar Bot (Modo Backtest)
-                    </button>
+                    <form action="{{ url_for('activate_bot') }}" method="POST">
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <i class="bi bi-play-circle"></i> 
+                            Activar Bot
+                        </button>
+                    </form>
                 {% endif %}
+                <div class="form-text text-center mt-2">
+                    (En Modo Backtest, esto solo afecta las sugerencias de la IA)
+                </div>
             </div>
         </div>
 
@@ -71,15 +79,9 @@
                     <span class="text-primary-emphasis">{{ settings.activo.split('_')[-2] | upper }}/{{ settings.activo.split('_')[-1] | upper }}</span>
                 </h5>
                 
-                <!-- 
-                  ¡AQUÍ ESTÁ EL CAMBIO! 
-                  Quitamos el "(próximamente)" y pusimos este 'div'.
-                  El script de abajo lo llenará.
-                -->
                 <div id="tv-mini-chart-widget-container" style="height: 400px; width: 100%;">
                     <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
                 </div>
-                
             </div>
         </div>
     </div>
@@ -95,14 +97,14 @@
                 <h5 class="card-title text-white">Sugerencia rápida para tu activo</h5>
                 
                 <!-- 
-                  NOTA: Este snippet es un texto estático de ejemplo.
-                  El análisis real (el que funciona) está en la página de 'Sugerencias IA'
+                  ¡PERFIL ARREGLADO!
+                  Cambiamos 'profile.risk' por 'settings.riesgo'
                 -->
                 <p class="text-white-50 small">
                     **Análisis de Activo (Simulado):** Nuestros modelos detectan una fuerte acumulación de volumen en el activo seleccionado. El sentimiento en redes es positivo. Alta probabilidad de ruptura alcista.
                 </p>
                 <p class="text-white-50 small">
-                    **Sugerencia (Perfil {{ profile.risk }}):** Basado en tu perfil, la estrategia actual es adecuada. Considera asegurar ganancias en la próxima resistencia.
+                    **Sugerencia (Perfil {{ settings.riesgo | capitalize }}):** Basado en tu perfil, la estrategia actual es adecuada. Considera asegurar ganancias en la próxima resistencia.
                 </p>
                 
                 <div class="mt-auto"> <!-- Empuja el botón al fondo -->
@@ -120,8 +122,7 @@
 
 
 <!-- 
-  ¡AQUÍ ESTÁ LA MAGIA! 
-  Añadimos este bloque de scripts al final
+  Scripts del Gráfico
 -->
 {% block page_scripts %}
 <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
@@ -143,7 +144,6 @@
     }
 
     // 2. Obtenemos el activo actual de tus Ajustes
-    //    Usamos 'tojson' para pasar la variable de Flask (Python) a JavaScript
     const currentAsset = {{ settings.activo | tojson }};
     const tvSymbol = getTradingViewSymbol(currentAsset);
 
@@ -163,3 +163,15 @@
     });
 </script>
 {% endblock %}
+```
+
+---
+
+### Tu Tarea
+
+1.  **Reemplaza** tu `templates/dashboard.html` con este nuevo archivo.
+2.  **Sube los cambios a GitHub:**
+    ```bash
+    git add templates/dashboard.html
+    git commit -m "Arregla el perfil de riesgo del dashboard y habilita los botones del bot"
+    git push origin main
