@@ -1,47 +1,37 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from viewmodels.main_viewmodel import MainViewModel
-import os # Para la clave secreta
+import os 
 
-# --- ¡NUEVO! ---
 # Importaciones para el bot en segundo plano
 from apscheduler.schedulers.background import BackgroundScheduler
 from model.bot_service import BotService 
 
 # --- Instalaciones necesarias ---
-# pip install Flask pyrebase4 firebase-admin apscheduler gunicorn
+# pip install Flask pyrebase4 firebase-admin apscheduler gunicorn google-generativeai
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24) # Clave segura
+app.secret_key = os.urandom(24) 
 vm = MainViewModel()
 
-
-# --- ¡NUEVO! INICIALIZACIÓN DEL SCHEDULER (BOT) ---
-
-# 1. Creamos una instancia del bot_service SÓLO para el scheduler
-# Esta instancia usará la conexión "Admin" que configuramos
+# --- INICIALIZACIÓN DEL SCHEDULER (BOT) ---
 scheduler_bot_service = BotService()
 
 def bot_task():
     """Función que el scheduler llamará."""
     print(f"--- [SCHEDULER] Iniciando ciclo del bot... ---")
     with app.app_context():
-        # Esta función (execute_bot_cycle) usa 'admin_db_ref' y NO necesita token
         scheduler_bot_service.execute_bot_cycle()
     print(f"--- [SCHEDULER] Ciclo del bot finalizado. ---")
 
-# 2. Inicializamos el planificador (scheduler)
 scheduler = BackgroundScheduler(daemon=True)
+# Lo dejamos en 30 segundos para pruebas, recuerda cambiarlo a 5-15 minutos para producción
+scheduler.add_job(bot_task, 'interval', seconds=30) 
 
-# 3. Añadimos la tarea 'bot_task' para que se ejecute cada 5 minutos
-# Puedes cambiar 'minutes=5' por 'seconds=30' para pruebas más rápidas
-scheduler.add_job(bot_task, 'interval', seconds=15)
-
-# 4. Iniciamos el scheduler
 try:
     scheduler.start()
     print("--- Scheduler (Bot en segundo plano) iniciado correctamente. ---")
 except (KeyboardInterrupt, SystemExit):
-    scheduler.shutdown() # Apagar limpiamente si se interrumpe
+    scheduler.shutdown() 
 # --- FIN DEL BLOQUE DEL SCHEDULER ---
 
 
@@ -55,7 +45,6 @@ def home():
 def login():
     email = request.form['email']
     password = request.form['password']
-    
     user = vm.login(email, password) 
     
     if user:
@@ -88,9 +77,7 @@ def dashboard():
         return redirect(url_for('home'))
     user_id = session['user_id']
     token = session['id_token']
-    
     data = vm.get_dashboard_data(user_id, token)
-    
     selected_asset = data['settings'].get('activo', 'crypto_btc_usd')
     
     return render_template(
@@ -122,7 +109,6 @@ def profile():
             "experience": request.form['experience'],
             "selected_market": request.form['market']
         }
-        
         if vm.update_user_profile(user_id, data, token):
             flash("Perfil actualizado correctamente", "success")
         else:
@@ -167,21 +153,17 @@ def bot_settings():
             "indicadores": request.form['indicadores'],
             "horario": request.form['horario']
         }
-        
         update_success = vm.save_bot_settings_data(user_id, data, token)
-        
         if update_success:
             flash("Ajustes del bot actualizados correctamente", "success")
         else:
             flash("Error al actualizar los ajustes", "danger")
-            
         return redirect(url_for('bot_settings'))
 
     settings = vm.get_bot_settings_data(user_id, token)
     return render_template('ajustes.html', settings=settings)
 
 
-# --- ¡RUTA MODIFICADA! ---
 @app.route('/activate_bot', methods=['POST'])
 def activate_bot():
     if 'user_id' not in session:
@@ -193,10 +175,8 @@ def activate_bot():
         flash("Bot activado. El bot comenzará a operar en el próximo ciclo (aprox. 30 seg).", "success")
     else:
         flash("Error al activar el bot.", "danger")
-        
     return redirect(url_for('dashboard'))
 
-# --- ¡RUTA MODIFICADA! ---
 @app.route('/deactivate_bot', methods=['POST'])
 def deactivate_bot():
     if 'user_id' not in session:
@@ -208,7 +188,6 @@ def deactivate_bot():
         flash("Bot desactivado. El bot dejará de operar y guardará su historial.", "info")
     else:
         flash("Error al desactivar el bot.", "danger")
-        
     return redirect(url_for('dashboard'))
 
 
@@ -219,34 +198,18 @@ def performance():
     
     user_id = session['user_id']
     token = session['id_token']
-    
     data = vm.get_performance_data(user_id, token)
     
     return render_template(
         'rendimientos.html', 
-        stats=data['stats'],
-        trades=data['all_trades'],
-        labels=data['grafica_labels'],
-        pnl_data=data['grafica_data']
+        stats=data.get('stats', {}),
+        trades=data.get('all_trades', []),
+        labels=data.get('grafica_labels', []),
+        pnl_data=data.get('grafica_data', [])
     )
 
-# --- ¡NUEVA RUTA! ---
-@app.route('/clear_history', methods=['POST'])
-def clear_history():
-    """Ruta para borrar manualmente el historial de trades."""
-    if 'user_id' not in session:
-        return redirect(url_for('home'))
-    
-    user_id = session['user_id']
-    token = session['id_token']
-    
-    # Usamos la función vm.clear_trades que ya existía
-    if vm.clear_trades(user_id, token):
-        flash("Historial de trades borrado. El bot empezará desde cero.", "success")
-    else:
-        flash("Error al borrar el historial.", "danger")
-        
-    return redirect(url_for('performance'))
+# --- ¡RUTAS FALSAS ELIMINADAS! ---
+# Se borraron las rutas /generate_mock y /clear_history
 
 
 @app.route('/change_password', methods=['POST'])
@@ -271,25 +234,6 @@ def change_email():
         flash("Error al cambiar el email.", "danger")
         return redirect(url_for('profile'))
     
-@app.route('/generate_mock', methods=['POST'])
-def generate_mock():
-    """
-    Esta ruta la dejamos intacta. Es útil para que el usuario
-    pueda 'reiniciar' su historial si lo desea, sin tener que
-    activar/desactivar el bot.
-    """
-    if 'user_id' not in session:
-        return redirect(url_for('home'))
-    
-    user_id = session['user_id']
-    token = session['id_token']
-    
-    if vm.generate_mock_trades(user_id, token):
-        flash("Datos de historial falsos generados con éxito.", "success")
-    else:
-        flash("Error al generar datos falsos.", "danger")
-    return redirect(url_for('performance'))
-
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -305,8 +249,33 @@ def forgot_password():
 def sugerencias():
     if 'user_id' not in session:
         return redirect(url_for('home'))
-    # Asegúrate de que tu archivo HTML se llama 'sugerencias.html'
+    # El template ahora tiene su propia lógica
     return render_template('sugerencias.html')
+
+# --- ¡NUEVA RUTA DE API PARA IA! ---
+@app.route('/get_ai_suggestion', methods=['POST'])
+def get_ai_suggestion():
+    if 'user_id' not in session:
+        return jsonify({"error": "No autenticado"}), 401
+        
+    user_id = session['user_id']
+    token = session['id_token']
+    
+    data = request.json
+    asset_id = data.get('asset_id')
+    asset_name = data.get('asset_name')
+    
+    if not asset_id:
+        return jsonify({"error": "No se proporcionó activo"}), 400
+        
+    # Llamamos al ViewModel para obtener la sugerencia
+    suggestion_text = vm.get_ai_analysis(user_id, token, asset_name)
+    
+    if "Error:" in suggestion_text:
+        return jsonify({"error": suggestion_text})
+    
+    return jsonify({"suggestion": suggestion_text})
+
 
 @app.route('/api_keys', methods=['GET', 'POST'])
 def api_keys():
@@ -344,11 +313,6 @@ def delete_api_key():
     
     return redirect(url_for('api_keys'))
 
-# --- ¡BLOQUE MODIFICADO! ---
 if __name__ == "__main__":
     print("Iniciando servidor...")
-    # 'use_reloader=False' es CRÍTICO.
-    # Si 'debug=True' y 'use_reloader=True' (default), Flask inicia
-    # la app DOS VECES, lo que duplicaría tu scheduler.
-    # En producción (Render), usarás gunicorn y esto no será un problema.
     app.run(debug=True, use_reloader=False)

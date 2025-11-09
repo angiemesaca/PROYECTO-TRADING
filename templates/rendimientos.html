@@ -1,205 +1,215 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Rendimiento del Bot{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mx-auto px-4 py-8">
+    
+    <!-- Título -->
+    <div class="flex items-center mb-6">
+        <span class="text-3xl text-blue-500 mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-graph-up-arrow" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0Zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5Z"/>
+            </svg>
+        </span>
+        <h1 class="text-3xl font-bold text-white">Rendimiento del Bot</h1>
+    </div>
+    <p class="text-lg text-gray-400 mb-8">Análisis de las operaciones automáticas generadas por tu estrategia.</p>
 
-    <!-- Fila del Título y Botón de Regenerar -->
-    <div class="row mb-4 align-items-center">
-        <div class="col-md-8">
-            <h2 class="fw-bold"><i class="bi bi-graph-up-arrow text-primary"></i> Rendimiento del Bot</h2>
-            <p class="text-muted">Análisis de las operaciones simuladas por tu estrategia.</p>
+    <!--
+    ¡BOTONES ELIMINADOS!
+    Hemos quitado los formularios para 'generate_mock' y 'clear_history'
+    para que la experiencia sea automática.
+    -->
+
+    <!-- Estadísticas Clave -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Tarjeta de Ganancia Neta -->
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
+            <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Ganancia Neta Total</h3>
+            <p class="text-3xl font-bold text-white mt-2">
+                ${{ "%.2f"|format(stats.ganancia_total) }}
+            </p>
+            {% if stats.ganancia_total > 0 %}
+                <span class="text-green-500 text-sm font-medium">+${{ "%.2f"|format(stats.ganancia_total) }} vs inicio</span>
+            {% elif stats.ganancia_total < 0 %}
+                <span class="text-red-500 text-sm font-medium">-${{ "%.2f"|format(stats.ganancia_total|abs) }} vs inicio</span>
+            {% else %}
+                <span class="text-gray-500 text-sm font-medium">Sin cambios</span>
+            {% endif %}
         </div>
-        <div class="col-md-4 text-md-end">
-            <form action="{{ url_for('generate_mock') }}" method="post">
-                <button type="submit" class="btn btn-outline-warning">
-                    <i class="bi bi-arrow-clockwise"></i> Generar Nuevo Historial (Mock)
-                </button>
-            </form>
-            <form action="{{ url_for('clear_history') }}" method="POST" style="display: inline-block; margin-left: 10px;">
-                <button type="submit" class="tu-clase-de-boton-rojo-o-peligro">
-                    Limpiar Historial (Empezar de Cero)
-                </button>
-            </form>
+
+        <!-- Tarjeta de Win Rate -->
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
+            <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Win Rate</h3>
+            <p class="text-3xl font-bold text-white mt-2">{{ "%.1f"|format(stats.win_rate) }}%</p>
+            <span class="text-gray-500 text-sm font-medium">{{ stats.trades_ganadores }} de {{ stats.total_trades }} trades</span>
+        </div>
+
+        <!-- Tarjeta de Operaciones Totales -->
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
+            <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Operaciones Totales</h3>
+            <p class="text-3xl font-bold text-white mt-2">{{ stats.total_trades }}</p>
+            <span class="text-gray-500 text-sm font-medium">Trades ejecutados</span>
+        </div>
+
+        <!-- Tarjeta de Trades Ganadores -->
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
+            <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Trades Ganadores</h3>
+            <p class="text-3xl font-bold text-white mt-2">{{ stats.trades_ganadores }}</p>
+            <span class="text-gray-500 text-sm font-medium">Operaciones con PNL positivo</span>
         </div>
     </div>
 
-    <!-- Fila de Estadísticas (HU-7) -->
-    <div class="row mb-4 g-3">
-        
-        <!-- Stat Card 1: Ganancia Total -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow-sm stat-card {{ 'positive' if stats.ganancia_total > 0 else 'negative' }}">
-                <div class="card-body position-relative">
-                    <h6 class="stat-card-title">Ganancia Neta Total</h6>
-                    <h2 class="stat-card-value">${{ "%.2f"|format(stats.ganancia_total) }}</h2>
-                    <i class="bi bi-cash-coin stat-card-icon"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stat Card 2: Win Rate -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow-sm stat-card">
-                <div class="card-body position-relative">
-                    <h6 class="stat-card-title">Win Rate</h6>
-                    <h2 class="stat-card-value">{{ "%.1f"|format(stats.win_rate) }}%</h2>
-                    <i class="bi bi-pie-chart stat-card-icon"></i>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stat Card 3: Total Trades -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow-sm stat-card">
-                <div class="card-body position-relative">
-                    <h6 class="stat-card-title">Operaciones Totales</h6>
-                    <h2 class="stat-card-value">{{ stats.total_trades }}</h2>
-                    <i class="bi bi-arrows-vertical stat-card-icon"></i>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Stat Card 4: Trades Ganadores -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow-sm stat-card positive">
-                <div class="card-body position-relative">
-                    <h6 class="stat-card-title">Trades Ganadores</h6>
-                    <h2 class="stat-card-value">{{ stats.trades_ganadores }}</h2>
-                    <i class="bi bi-check-lg stat-card-icon"></i>
-                </div>
-            </div>
-        </div>
+    <!-- Gráfica de Avance -->
+    <div class="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700 mb-8">
+        <h2 class="text-xl font-semibold text-white mb-4">Avance de Capital (PNL Acumulado)</h2>
+        {% if trades %}
+            <canvas id="pnlChart"></canvas>
+        {% else %}
+            <p class="text-gray-400">No hay suficientes datos para mostrar la gráfica. Activa el bot para empezar.</p>
+        {% endif %}
     </div>
 
-    <!-- Fila de Gráfica y Tabla -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-body p-4">
-
-                    <!-- 1. La Gráfica -->
-                    <h4 class="card-title">Avance de Capital (PnL Acumulado)</h4>
-                    
-                    <!-- 
-                      AQUÍ ESTÁ EL ARREGLO 1:
-                      Pasamos los datos de Flask a atributos 'data-*' en el HTML.
-                      Usamos '|e' (escape) para asegurar que el JSON sea un string HTML válido.
-                    -->
-                    <canvas id="pnlChart" 
-                            style="height: 300px; max-height: 300px;"
-                            data-labels="{{ labels | tojson | e }}"
-                            data-pnl-data="{{ pnl_data | tojson | e }}">
-                    </canvas>
-                    
-                    <hr class="my-4">
-
-                    <!-- 2. La Tabla -->
-                    <h4 class="card-title">Historial de Operaciones</h4>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-striped table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Activo</th>
-                                    <th>Tipo</th>
-                                    <th>Precio</th>
-                                    <th>PnL ($)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if trades %}
-                                    {% for trade in trades %}
-                                    <tr>
-                                        <td class="text-muted">{{ trade.timestamp }}</td>
-                                        <td>{{ trade.asset }}</td>
-                                        <td>
-                                            {% if trade.type == 'buy' %}
-                                                <span class="badge text-bg-success">Compra</span>
-                                            {% else %}
-                                                <span class="badge text-bg-danger">Venta</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>${{ "%.2f"|format(trade.price) }}</td>
-                                        <td class="fw-bold {{ 'text-success' if trade.pnl > 0 else 'text-danger' }}">
-                                            {{ "%.2f"|format(trade.pnl) }}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
+    <!-- Historial de Operaciones -->
+    <div class="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+        <h2 class="text-xl font-semibold text-white p-6">Historial de Operaciones</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-700">
+                <thead class="bg-gray-700">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Timestamp</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Activo</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Tipo</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Precio</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">PNL ($)</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">PNL Acumulado ($)</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-gray-800 divide-y divide-gray-700">
+                    {% if trades %}
+                        {% for trade in trades|reverse %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">{{ trade.timestamp }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-white font-medium">{{ trade.asset }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {% if trade.type == 'buy' %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-900 text-green-300">Compra</span>
                                 {% else %}
-                                    <tr>
-                                        <td colspan="5" class="text-center p-4">
-                                            <p class="text-muted mb-0">No hay datos de rendimiento.</p>
-                                            <p class="text-muted mb-0">Ve a "Ajustes Bot", guarda una estrategia y activa el bot.</p>
-                                        </td>
-                                    </tr>
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-900 text-red-300">Venta</span>
                                 {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">${{ "%.2f"|format(trade.price) }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm {% if trade.pnl > 0 %}text-green-500{% elif trade.pnl < 0 %}text-red-500{% else %}text-gray-400{% endif %}">
+                                {{ "%.2f"|format(trade.pnl) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-white font-bold">
+                                {{ "%.2f"|format(trade.pnl_acumulado) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                No hay operaciones en el historial.
+                                <br>
+                                <span class="text-sm">Ve al Dashboard para activar tu bot e iniciar el trading automático.</span>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
+</div>
 
-</div> <!-- Fin .container -->
-
-<!-- 
-  AQUÍ ESTÁ EL ARREGLO 2:
-  Este bloque de script ahora es 100% JavaScript válido.
-  Tu editor ya no se quejará.
--->
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // 1. Obtenemos el elemento <canvas>
-    const chartEl = document.getElementById('pnlChart');
-    
-    // 2. Leemos los datos desde sus atributos 'data-*'
-    // (Usamos JSON.parse para convertir el string de vuelta a un array)
-    const labels = JSON.parse(chartEl.dataset.labels);
-    const pnlData = JSON.parse(chartEl.dataset.pnlData);
+document.addEventListener('DOMContentLoaded', (event) => {
+    // Solo intenta crear la gráfica si hay datos
+    const labels = {{ labels|tojson }};
+    if (labels.length > 0) {
+        const ctx = document.getElementById('pnlChart').getContext('2d');
+        
+        // Gradiente para la línea
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)'); // color azul
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
 
-    // 3. Obtenemos el contexto (como antes)
-    const ctx = chartEl.getContext('2d');
-    
-    // Función para el color de la línea
-    const lastPnl = pnlData.length > 0 ? pnlData[pnlData.length - 1] : 0;
-    const chartLineColor = lastPnl >= 0 ? 'rgb(25, 135, 84)' : 'rgb(220, 53, 69)';
-    
-    // 4. Creamos la gráfica (sin cambios)
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'PnL Acumulado ($)',
-                data: pnlData,
-                borderColor: chartLineColor,
-                borderWidth: 2,
-                tension: 0.1,
-                fill: false,
-                pointRadius: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    ticks: { color: '#adb5bd' },
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                },
-                x: {
-                    ticks: { color: '#adb5bd' },
-                    grid: { display: false }
-                }
+        const pnlData = {{ pnl_data|tojson }};
+        
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'PNL Acumulado ($)',
+                    data: pnlData,
+                    borderColor: 'rgba(59, 130, 246, 1)', // Azul sólido
+                    backgroundColor: gradient, // Relleno con gradiente
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    fill: 'origin', // Rellenar hasta el eje X
+                    tension: 0.1 // Línea ligeramente curvada
+                }]
             },
-            plugins: {
-                legend: {
-                    labels: { color: '#f8f9fa' }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            color: '#9CA3AF', // Color de los números del eje Y
+                            callback: function(value, index, values) {
+                                return '$' + value;
+                            }
+                        },
+                        grid: {
+                            color: '#374151' // Color de las líneas de la cuadrícula
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#9CA3AF', // Color de las etiquetas del eje X
+                            maxTicksLimit: 10 // Mostrar menos etiquetas para que no se saturen
+                        },
+                        grid: {
+                            color: '#374151' // Color de las líneas de la cuadrícula
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#D1D5DB' // Color de la leyenda
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1F2937',
+                        titleColor: '#F9FAFB',
+                        bodyColor: '#E5E7EB',
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
                 }
             }
-        }
-    });
+        });
+    }
+});
 </script>
+
 {% endblock %}

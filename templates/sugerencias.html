@@ -1,193 +1,143 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Análisis IA{% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- Columna 1: Menú de Activos (Ahora es interactivo) -->
-    <div class="col-md-4">
-        <h2 class="fw-bold mb-3">
-            <i class="bi bi-magic text-primary"></i>
-            Análisis IA (Gemini)
-        </h2>
-        <p class="text-muted">
-            Selecciona un activo para obtener un análisis de mercado en tiempo real.
-        </p>
-        
-        <!-- 
-          Usamos 'list-group' pero ahora con IDs para el JavaScript.
-          'data-symbol' tiene el término de búsqueda.
-          'data-name' tiene el nombre bonito.
-        -->
-        <div class="list-group shadow-sm" id="asset-list">
-            <a href="#" class="list-group-item list-group-item-action" data-symbol="Bitcoin (BTC)" data-name="Bitcoin">
-                <h5 class="mb-1">Bitcoin (BTC)</h5>
-                <small>Criptomoneda</small>
-            </a>
-            <a href="#" class="list-group-item list-group-item-action" data-symbol="Ethereum (ETH)" data-name="Ethereum">
-                <h5 class="mb-1">Ethereum (ETH)</h5>
-                <small>Criptomoneda</small>
-            </a>
-            <a href="#" class="list-group-item list-group-item-action" data-symbol="Oro (XAU)" data-name="Oro (XAU)">
-                <h5 class="mb-1">Oro (XAU)</h5>
-                <small>Commodity</small>
-            </a>
-            <a href="#" class="list-group-item list-group-item-action" data-symbol="Índice S&P 500 (SPX)" data-name="S&P 500">
-                <h5 class="mb-1">S&P 500 (SPX)</h5>
-                <small>Índice</small>
-            </a>
-        </div>
+<div class="container mx-auto px-4 py-8">
+    
+    <!-- Título -->
+    <div class="flex items-center mb-8">
+        <span class="text-3xl text-blue-500 mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-magic" viewBox="0 0 16 16">
+                <path d="M9.5 2.672a.5.5 0 1 0 1 0V.843a.5.5 0 0 0-1 0v1.829Zm4.5.035A.5.5 0 0 0 13.293 2L12 3.293a.5.5 0 1 0 .707.707L14 3.707a.5.5 0 0 0 .035-.707ZM-2.465 8.5a.5.5 0 0 1 0-.708l1.707-1.707a.5.5 0 0 1 .708 0L.707 7.793a.5.5 0 0 1 0 .707L-.293 9.207a.5.5 0 0 1-.708 0l-1.464-1.464S-2.465 8.5-2.465 8.5ZM1 6a.5.5 0 0 1 .5-.5h1.829a.5.5 0 1 1 0 1H1.5A.5.5 0 0 1 1 6Zm11.828 7.207a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L13.535 9h-1.829a.5.5 0 0 0 0 1h1.293L12 11.293a.5.5 0 0 0 0 .707l.707.707ZM11 13a.5.5 0 0 1 .5.5v1.829a.5.5 0 1 1-1 0V13.5a.5.5 0 0 1 .5-.5ZM7.293 1.293a.5.5 0 0 1 .707 0L9.707 3a.5.5 0 0 1 0 .707L8.707 4.707a.5.5 0 0 1-.707 0L6.293 3a.5.5 0 0 1 0-.707L7.293 1.293Z"/>
+                <path d="M10.193 7.732c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014L10.25 8l.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01l.024.024L10.5 8.5l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014l.024.024.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01L11 9.5l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014l.024.024L11.25 10l.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01l.024.024L11.5 10.5l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014L12 11.25l.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01l.024.024L12.25 12l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014L13 12.75l.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01l.024.024L13.25 13l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014L13.75 13.5c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01L14 14.25l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014l.024.024L14.25 15l.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01l.354.354a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L14.707 13h-1.829a.5.5 0 0 0 0 1h1.293L13 15.293a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L13.293 12l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L13.5 11.75l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L13.75 11.5l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L14 11l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L14.25 10.5l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L14.5 10.25l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L14.75 9.75l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L15 9.25l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L15.25 8.75l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L15.5 8.5l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L15.75 8.25l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L15.965 8h-1.829a.5.5 0 1 0 0 1h1.293L14 10.293a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L14.293 7h-1.829a.5.5 0 1 0 0 1h1.293L12.535 9.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L13.293 6h-1.829a.5.5 0 0 0 0 1h1.293L11.535 8.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L12.293 5h-1.829a.5.5 0 0 0 0 1h1.293L10.535 7.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L11.293 4h-1.829a.5.5 0 0 0 0 1h1.293L9.535 6.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0L12.657 5.207a.5.5 0 0 0 0-.707L11.646 3.5a.5.5 0 0 0-.707 0L9.232 5.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L10.193 2.5a.5.5 0 0 0-.707 0L7.779 4.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L8.464 1.5a.5.5 0 0 0-.707 0L6.05 3.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L6.768 0L6.06 0a.5.5 0 0 0 0 1h.586l.707.707a.5.5 0 0 0 0 .707L6.343 3.414a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0L8.768 3.818a.5.5 0 0 0 0-.707L8.06 2.414a.5.5 0 0 0 0-.707L7.05 0.707a.5.5 0 0 0-.707 0L5.293 1.757a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L6.06 0H4.5a.5.5 0 0 0 0 1h.586l.707.707a.5.5 0 0 0 0 .707L4.783 3.414a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0L7.207 3.818a.5.5 0 0 0 0-.707L6.5 2.414a.5.5 0 0 0 0-.707L5.49 0.707a.5.5 0 0 0-.707 0L3.076 2.414a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L3.793 0H3.5a.5.5 0 0 0 0 1h.586l.707.707a.5.5 0 0 0 0 .707L3.783 3.414a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0L6.207 3.818a.5.5 0 0 0 0-.707L5.5 2.414a.5.5 0 0 0 0-.707L4.49 0.707a.5.5 0 0 0-.707 0L2.076 2.414a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L2.793 0H2a.5.5 0 0 0-.5.5v1.28c0 .264.105.52.293.707l.707.707a.5.5 0 0 0 .708 0l.707-.707a.5.5 0 0 0 .293-.707V.5a.5.5 0 0 0-.5-.5H2Z"/>
+            </svg>
+        </span>
+        <h1 class="text-3xl font-bold text-white">Análisis IA (Gemini)</h1>
     </div>
-
-    <!-- Columna 2: Gráfica y Análisis -->
-    <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-body" style="min-height: 400px;">
-                <h4 class="card-title" id="analysis-title">Selecciona un activo</h4>
-                <p class="card-subtitle mb-2 text-muted" id="analysis-subtitle">Esperando tu selección...</p>
-                <hr>
+    
+    <div class="flex flex-col md:flex-row gap-8">
+        <!-- Columna de Selección -->
+        <div class="w-full md:w-1/3 lg:w-1/4">
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+                <h2 class="text-xl font-semibold text-white mb-4">Selecciona un Activo</h2>
+                <p class="text-gray-400 mb-6">La IA analizará tu historial de trades y el mercado para este activo.</p>
+                <div class="space-y-3" id="asset-list">
+                    <!-- Los botones se generan dinámicamente -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Columna de Análisis -->
+        <div class="w-full md:w-2/3 lg:w-3/4">
+            <div class="bg-gray-800 rounded-lg shadow-lg p-8 border border-gray-700 min-h-[300px]">
+                <h2 class="text-2xl font-semibold text-white mb-4" id="analysis-title">Selecciona un activo para analizar</h2>
                 
-                <!-- 
-                  Este contenedor se llenará con la respuesta de la IA
-                  o con un indicador de carga (Spinner).
-                -->
-                <div id="analysis-output">
-                    <div class="text-center text-muted p-5">
-                        <i class="bi bi-search" style="font-size: 3rem;"></i>
-                        <p class="mt-2">El análisis de IA aparecerá aquí.</p>
-                    </div>
+                <!-- Estado de Carga (Spinner) -->
+                <div id="loading-spinner" class="hidden flex items-center justify-center py-10">
+                    <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-lg text-gray-400">Analizando tu portafolio...</span>
                 </div>
-
-                <!-- Contenedor para las fuentes (grounding) -->
-                <div id="analysis-sources" class="mt-4" style="display: none;">
-                    <h6 class="text-muted">Fuentes (Google Search):</h6>
-                    <ul class="list-group list-group-flush" id="sources-list"></ul>
+                
+                <!-- Estado de Error -->
+                <div id="error-message" class="hidden bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-lg">
+                    <strong class="font-bold">Error en el Análisis:</strong>
+                    <span class="block" id="error-text">No se pudo conectar con el servicio de IA.</span>
                 </div>
-
+                
+                <!-- Contenido del Análisis -->
+                <div id="analysis-content" class="prose prose-invert max-w-none text-gray-300">
+                    <!-- El análisis de la IA se insertará aquí -->
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 
-  AQUÍ ESTÁ LA MAGIA (El Script de IA)
--->
 <script>
-    // --- 1. Constantes y Configuración ---
-    const assetList = document.getElementById('asset-list');
+document.addEventListener('DOMContentLoaded', () => {
+    // Lista de activos (podrías pasar esto desde Flask también)
+    const assets = [
+        { id: 'crypto_btc_usd', name: 'Bitcoin (BTC)', type: 'Criptomoneda' },
+        { id: 'crypto_eth_usd', name: 'Ethereum (ETH)', type: 'Criptomoneda' },
+        { id: 'crypto_sol_usd', name: 'Solana (SOL)', type: 'Criptomoneda' },
+        { id: 'forex_eur_usd', name: 'EUR/USD', type: 'Forex' },
+        { id: 'commodity_oro', name: 'Oro (XAU)', type: 'Commodity' },
+        { id: 'index_spx_500', name: 'S&P 500', type: 'Índice' }
+    ];
+
+    const assetListContainer = document.getElementById('asset-list');
     const analysisTitle = document.getElementById('analysis-title');
-    const analysisSubtitle = document.getElementById('analysis-subtitle');
-    const analysisOutput = document.getElementById('analysis-output');
-    const analysisSources = document.getElementById('analysis-sources');
-    const sourcesList = document.getElementById('sources-list');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const errorMessage = document.getElementById('error-message');
+    const errorText = document.getElementById('error-text');
+    const analysisContent = document.getElementById('analysis-content');
 
-    // API Key de Gemini (vacía, como siempre)
-    const apiKey = ""; 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-    // --- 2. El "Listener" (qué pasa al hacer clic) ---
-    assetList.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        // Encuentra el 'list-group-item' al que se hizo clic
-        const target = e.target.closest('.list-group-item');
-        if (!target) return;
-
-        // Quita la clase 'active' de todos y pónsela al seleccionado
-        document.querySelectorAll('#asset-list .list-group-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        target.classList.add('active');
-
-        // Obtenemos los datos del activo
-        const assetSymbol = target.dataset.symbol;
-        const assetName = target.dataset.name;
-
-        // ¡Llamamos a la IA!
-        getAiAnalysis(assetSymbol, assetName);
+    // Generar botones de activos
+    assets.forEach(asset => {
+        const button = document.createElement('button');
+        button.className = 'w-full text-left px-4 py-3 rounded-lg bg-gray-700 hover:bg-blue-600 hover:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500';
+        button.innerHTML = `
+            <span class="font-semibold text-white">${asset.name}</span>
+            <span class="block text-sm text-gray-400">${asset.type}</span>
+        `;
+        button.onclick = () => {
+            fetchAnalysis(asset);
+        };
+        assetListContainer.appendChild(button);
     });
 
-    // --- 3. El Indicador de Carga (Spinner) ---
-    function showLoading() {
-        analysisTitle.textContent = `Analizando ${name}...`;
-        analysisSubtitle.textContent = `Consultando a Gemini y Google (tiempo real)...`;
-        analysisSources.style.display = 'none';
-        sourcesList.innerHTML = '';
-        analysisOutput.innerHTML = `
-            <div class="d-flex justify-content-center p-5">
-                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-            <p class="text-center text-muted">Esto puede tardar unos segundos...</p>
-        `;
-    }
+    async function fetchAnalysis(asset) {
+        // 1. Mostrar estado de carga y ocultar todo lo demás
+        analysisTitle.textContent = `Analizando: ${asset.name}`;
+        loadingSpinner.classList.remove('hidden');
+        errorMessage.classList.add('hidden');
+        analysisContent.innerHTML = '';
 
-    // --- 4. La Función que llama a la IA (¡La Importante!) ---
-    async function getAiAnalysis(symbol, name) {
-        showLoading();
-
-        // 1. Preparamos el Prompt
-        const systemPrompt = "Actúa como un analista financiero senior de un fondo de cobertura. Eres directo, profesional y usas lenguaje técnico. No saludes. Tu respuesta debe estar en español y formateada en HTML (párrafos <p> y listas <ul>/<li>).";
-        const userQuery = `
-          Analiza el estado actual del mercado para ${symbol} (en tiempo real). 
-          Dame un resumen de 3 puntos clave (tendencia, noticias recientes, sentimiento) 
-          y concluye con una recomendación de trading (COMPRA, VENTA, o MANTENER) y por qué.
-        `;
-
-        // 2. Preparamos el Payload
-        const payload = {
-            contents: [{ parts: [{ text: userQuery }] }],
-            // ¡AQUÍ ESTÁ LA MAGIA! Habilitamos la búsqueda en Google
-            tools: [{ "google_search": {} }],
-            systemInstruction: {
-                parts: [{ text: systemPrompt }]
-            },
-        };
-
-        // 3. Hacemos la llamada (fetch)
         try {
-            const response = await fetch(apiUrl, {
+            // 2. Llamar a nuestro nuevo endpoint en Flask
+            const response = await fetch('/get_ai_suggestion', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ asset_id: asset.id, asset_name: asset.name })
             });
 
             if (!response.ok) {
-                throw new Error(`Error de API: ${response.statusText}`);
+                throw new Error(`Error de red: ${response.statusText}`);
             }
 
-            const result = await response.json();
-            const candidate = result.candidates?.[0];
+            const data = await response.json();
 
-            if (candidate && candidate.content?.parts?.[0]?.text) {
-                // 4. Obtenemos la respuesta de la IA (texto HTML)
-                const aiHtmlResponse = candidate.content.parts[0].text;
-                analysisTitle.textContent = `Análisis de: ${name}`;
-                analysisSubtitle.textContent = `Completado a las ${new Date().toLocaleTimeString()}`;
-                analysisOutput.innerHTML = aiHtmlResponse;
-
-                // 5. Mostramos las fuentes (Google Search)
-                const groundingMetadata = candidate.groundingMetadata;
-                if (groundingMetadata && groundingMetadata.groundingAttributions) {
-                    const sources = groundingMetadata.groundingAttributions
-                        .map(attr => attr.web)
-                        .filter(web => web?.uri && web.title);
-                    
-                    if (sources.length > 0) {
-                        sourcesList.innerHTML = sources
-                            .map(source => `<li class="list-group-item bg-transparent border-secondary-subtle"><a href="${source.uri}" target="_blank">${source.title}</a></li>`)
-                            .join('');
-                        analysisSources.style.display = 'block';
-                    }
-                }
-            } else {
-                throw new Error("Respuesta de la IA inválida.");
+            // 3. Manejar la respuesta
+            if (data.error) {
+                throw new Error(data.error);
             }
+
+            // Ocultar spinner y mostrar contenido
+            loadingSpinner.classList.add('hidden');
+            // Usamos un truco simple para convertir Markdown básico (como * y \n) a HTML
+            analysisContent.innerHTML = formatMarkdown(data.suggestion);
+
         } catch (error) {
-            console.error(error);
-            analysisTitle.textContent = "Error en el Análisis";
-            analysisSubtitle.textContent = "No se pudo conectar con el servicio de IA.";
-            analysisOutput.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+            // 4. Manejar errores
+            loadingSpinner.classList.add('hidden');
+            errorText.textContent = error.message;
+            errorMessage.classList.remove('hidden');
         }
     }
+
+    function formatMarkdown(text) {
+        // Esta es una función simple, no un parser completo
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Negrita
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')         // Cursiva
+            .replace(/\n/g, '<br>');                      // Saltos de línea
+    }
+});
 </script>
 {% endblock %}

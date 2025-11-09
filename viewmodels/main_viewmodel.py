@@ -2,6 +2,24 @@ from model.auth_service import AuthService
 from model.db_service import DBService
 from model.bot_service import BotService
 import datetime
+import traceback
+
+# --- ¡NUEVO! IMPORTACIÓN DE IA ---
+import google.generativeai as genai
+import os # Para la API Key
+
+# --- ¡NUEVO! CONFIGURACIÓN DE IA ---
+# DEBES añadir 'GEMINI_API_KEY' a tus variables de entorno en Render
+# (Igual que hiciste con el Secret File, pero esta vez en "Environment Variables")
+try:
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        print("--- Modelo de IA (Gemini) configurado ---")
+    else:
+        print("ADVERTENCIA: GEMINI_API_KEY no encontrada. La IA no funcionará.")
+except Exception as e:
+    print(f"Error al configurar Gemini: {e}")
 
 class MainViewModel:
     def __init__(self):
@@ -9,6 +27,15 @@ class MainViewModel:
         self.db_service = DBService()
         self.bot_service = BotService()
         self.markets = self.db_service.get_markets()
+        
+        # --- ¡NUEVO! Inicializar el modelo de IA ---
+        try:
+            self.ai_model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
+        except Exception:
+            self.ai_model = None
+
+    # ... (El resto de tus funciones: login, register, get_user_profile, etc. se quedan IGUAL) ...
+    # ... (pega aquí todas tus funciones desde login() hasta clear_trades()) ...
 
     def login(self, email, password):
         """Maneja el login. Llama al auth_service."""
@@ -30,7 +57,6 @@ class MainViewModel:
                 "risk": "medio",
                 "experience": "novato"
             }
-            # Usamos .set() (save_user_profile)
             self.db_service.save_user_profile(uid, profile_data, id_token)
             
             # 2. Preparamos AJUSTES INICIALES DEL BOT
@@ -41,7 +67,6 @@ class MainViewModel:
                 "indicadores": "RSI, MACD",
                 "isActive": False
             }
-            # Usamos .set() (save_bot_settings)
             self.bot_service.save_bot_settings(uid, default_settings, id_token)
             
             return user
@@ -53,9 +78,7 @@ class MainViewModel:
 
     def update_user_profile(self, user_id, data, token):
         """Actualiza el perfil del usuario (merge)."""
-        # Primero, obtenemos el perfil existente para no borrar campos
         current_profile = self.get_user_profile(user_id, token)
-        # Actualizamos con los datos nuevos
         current_profile.update(data)
         return self.db_service.save_user_profile(user_id, current_profile, token)
 
@@ -110,19 +133,31 @@ class MainViewModel:
                 sorted_trades = trade_log.values()
 
             total_trades = len(sorted_trades) 
-
+            
+            # ¡Corregido! Reiniciamos pnl_total para recalcularlo
+            pnl_total_recalculado = 0
             for trade in sorted_trades:
-                trade_list.append(trade)
-                ts = trade.get('timestamp', 'N/A').split(' ')
-                etiqueta_corta = ts[1] if len(ts) == 2 else ts[0] 
-                labels_grafica.append(etiqueta_corta)
+                # Recalculamos el PNL acumulado por si el bot se reinició
+                pnl_trade = trade.get('pnl', 0)
+                pnl_total_recalculado += pnl_trade
+                trade['pnl_acumulado'] = round(pnl_total_recalculado, 2)
                 
-                pnl_acumulado = trade.get('pnl_acumulado', 0)
-                data_grafica.append(pnl_acumulado)
+                trade_list.append(trade)
+                
+                # Usamos una etiqueta de fecha más corta para la gráfica
+                try:
+                    ts_obj = datetime.datetime.strptime(trade.get('timestamp', ''), "%Y-%m-%d %H:%M:%S")
+                    etiqueta_corta = ts_obj.strftime("%m-%d %H:%M")
+                except ValueError:
+                    etiqueta_corta = trade.get('timestamp', 'N/A').split(' ')[0]
+                
+                labels_grafica.append(etiqueta_corta)
+                data_grafica.append(trade['pnl_acumulado'])
 
-                if trade.get('pnl', 0) > 0:
+                if pnl_trade > 0:
                     trades_ganadores += 1
-                ganancia_total = pnl_acumulado 
+            
+            ganancia_total = pnl_total_recalculado
 
         win_rate = (trades_ganadores / total_trades) * 100 if total_trades > 0 else 0
 
@@ -189,5 +224,53 @@ class MainViewModel:
         return self.bot_service.generate_mock_trade_log(user_id, token, asset_seleccionado)
     
     def clear_trades(self, user_id, token):
-        """Llama al servicio para borrar el historial de trades."""
+        """Lmanda a llamar el servicio para borrar el historial de trades."""
         return self.bot_service.clear_trade_log(user_id, token)
+
+    # --- ¡NUEVA FUNCIÓN DE IA! ---
+    def get_ai_analysis(self, user_id, token, asset_name):
+        """
+        Llama a la IA de Gemini para obtener un análisis del portafolio.
+        """
+        if not self.ai_model:
+            return "Error: El servicio de IA no está configurado en el servidor. Falta la GEMINI_API_KEY."
+
+        # 1. Obtenemos los datos del usuario
+        profile = self.get_user_profile(user_id, token)
+        performance_data = self.get_performance_data(user_id, token)
+        
+        # 2. Resumimos los datos para la IA
+        stats = performance_data.get('stats', {})
+        profile_summary = f"Perfil del usuario: Nivel de experiencia '{profile.get('experience', 'no definido')}' con tolerancia al riesgo '{profile.get('risk', 'no definida')}'."
+        performance_summary = f"Rendimiento actual: Ganancia neta de ${stats.get('ganancia_total', 0)}, con un Win Rate del {stats.get('win_rate', 0)}% sobre {stats.get('total_trades', 0)} operaciones."
+        
+        # 3. Creamos el prompt para Gemini
+        prompt = f"""
+        Actúa como un "Expert Advisor" de trading para un usuario de la app "Wallet Trainer".
+        El usuario está pidiendo un análisis sobre el activo: {asset_name}.
+        
+        Aquí tienes un resumen de su perfil y rendimiento general:
+        - {profile_summary}
+        - {performance_summary}
+        
+        Por favor, genera un análisis corto (2-3 párrafos) para el usuario.
+        El análisis debe incluir:
+        1.  Una breve opinión (alcista/bajista/neutral) sobre el estado actual del mercado para {asset_name}, basándote en información pública reciente. (Usa la herramienta de búsqueda si es necesario).
+        2.  Un consejo o sugerencia para el usuario sobre cómo podría operar este activo, teniendo en cuenta su perfil de riesgo y su rendimiento actual.
+        
+        Usa un tono profesional, alentador y directo. Formatea tu respuesta con saltos de línea y usa **negritas** para las ideas clave.
+        """
+
+        try:
+            # 4. Habilitamos Google Search en la herramienta
+            tools = [{"google_search": {}}]
+            
+            # 5. Generamos el contenido
+            response = self.ai_model.generate_content(prompt, tools=tools)
+            
+            return response.text
+        
+        except Exception as e:
+            print(f"Error al llamar a Gemini: {e}")
+            print(traceback.format_exc())
+            return f"Error: No se pudo conectar con el servicio de IA. {e}"
