@@ -6,9 +6,6 @@ import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from model.bot_service import BotService 
 
-# --- Instalaciones necesarias ---
-# pip install Flask pyrebase4 firebase-admin apscheduler gunicorn google-generativeai
-
 app = Flask(__name__)
 app.secret_key = os.urandom(24) 
 vm = MainViewModel()
@@ -24,7 +21,6 @@ def bot_task():
     print(f"--- [SCHEDULER] Ciclo del bot finalizado. ---")
 
 scheduler = BackgroundScheduler(daemon=True)
-# Lo dejamos en 30 segundos para pruebas, recuerda cambiarlo a 5-15 minutos para producción
 scheduler.add_job(bot_task, 'interval', seconds=30) 
 
 try:
@@ -71,20 +67,35 @@ def register():
             flash("Error al registrar usuario", "danger")
     return render_template('register.html')
 
+# --- ¡RUTA DEL DASHBOARD MODIFICADA! ---
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('home'))
     user_id = session['user_id']
     token = session['id_token']
+    
+    # 1. Obtenemos los datos normales
     data = vm.get_dashboard_data(user_id, token)
-    selected_asset = data['settings'].get('activo', 'crypto_btc_usd')
+    
+    # 2. Obtenemos el activo seleccionado para la IA
+    selected_asset_id = data['settings'].get('activo', 'crypto_btc_usd')
+    # Formateamos el nombre (ej: 'crypto_btc_usd' -> 'Bitcoin (BTC)')
+    # (Esto es un truco simple, deberíamos tener un mapa, pero funciona por ahora)
+    try:
+        asset_name = selected_asset_id.split('_')[1].upper()
+    except:
+        asset_name = selected_asset_id.replace('_', ' ').title()
+    
+    # 3. Obtenemos el snippet de la IA
+    # (Le pasamos un token falso si es necesario, ya que el VM de IA no lo usa)
+    ai_snippet = vm.get_ai_analysis(user_id, token, asset_name)
     
     return render_template(
         'dashboard.html', 
         profile=data['profile'], 
         settings=data['settings'],
-        selected_asset=selected_asset
+        ai_snippet=ai_snippet # <-- ¡Le pasamos el snippet!
     )
 
 @app.route('/logout')
@@ -208,10 +219,6 @@ def performance():
         pnl_data=data.get('grafica_data', [])
     )
 
-# --- ¡RUTAS FALSAS ELIMINADAS! ---
-# Se borraron las rutas /generate_mock y /clear_history
-
-
 @app.route('/change_password', methods=['POST'])
 def change_password():
     if 'user_id' not in session: return redirect(url_for('home'))
@@ -221,7 +228,7 @@ def change_password():
         return redirect(url_for('logout'))
     else:
         flash("Error al cambiar la contraseña.", "danger")
-        return redirect(url_for('profile'))
+        return redirect(url_D'profile'))
 
 @app.route('/change_email', methods=['POST'])
 def change_email():
@@ -252,7 +259,6 @@ def sugerencias():
     # El template ahora tiene su propia lógica
     return render_template('sugerencias.html')
 
-# --- ¡NUEVA RUTA DE API PARA IA! ---
 @app.route('/get_ai_suggestion', methods=['POST'])
 def get_ai_suggestion():
     if 'user_id' not in session:

@@ -1,191 +1,94 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mx-auto px-4 py-8">
 
-    <!-- Fila de Bienvenida -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="fw-light">Bienvenido, <span class="fw-bold">{{ profile.username | capitalize }}</span></h2>
-            <p class="text-muted">Este es tu panel de control. ¿Listo para operar?</p>
-        </div>
+    <!-- Mensaje de Bienvenida -->
+    <div class="mb-8 p-6 bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+        <h1 class="text-3xl font-bold text-white">Bienvenido, {{ profile.username }}</h1>
+        <p class="text-lg text-gray-400">Este es tu panel de control. ¿Listo para operar?</p>
     </div>
 
-    <!-- 
-      NUEVO LAYOUT: Fila 1 con Bot y Análisis IA
-    -->
-    <div class="row">
+    <!-- Alerta de Flash (si existe) -->
+    <!-- (Tu base.html ya debería manejar las alertas flash, pero si no, este es un buen lugar) -->
 
-        <!-- Tarjeta 1: Control del Bot (col-lg-5) -->
-        <div class="col-lg-5 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-flex flex-column">
-                    <h4 class="card-title mb-0">Control del Bot</h4>
-                    <p class="text-muted">Activa o desactiva tu estrategia.</p>
-                    <hr>
-                    <i class="bi bi-robot card-icon"></i>
-                    
-                    <div class="mb-3">
-                        <h5 class="fw-normal">Estado Actual:</h5>
-                        {% if settings.isActive %}
-                            <h3>
-                                <span class="status-dot active"></span>
-                                <span class="fw-bold text-success">Activado</span>
-                            </h3>
-                            <p>Buscando operaciones en <strong class="text-primary">{{ selected_asset | replace("_", " ") | capitalize }}</strong>.</p>
-                        {% else %}
-                            <h3>
-                                <span class="status-dot inactive"></span>
-                                <span class="fw-bold text-danger">Desactivado</span>
-                            </h3>
-                            <p>Tu bot está en pausa. Actívalo para comenzar.</p>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mt-auto">
-                        {% if settings.isActive %}
-                            <form action="{{ url_for('deactivate_bot') }}" method="post" class="d-grid">
-                                <button type="submit" class="btn btn-danger btn-lg w-100">
-                                    <i class="bi bi-stop-circle"></i> Desactivar Bot
-                                </button>
-                            </form>
-                        {% else %}
-                            <form action="{{ url_for('activate_bot') }}" method="post" class="d-grid">
-                                <button type="submit" class="btn btn-success btn-lg w-100">
-                                    <i class="bi bi-play-circle"></i> Activar Bot
-                                </button>
-                            </form>
-                        {% endif %}
-                    </div>
-                </div>
+    <!-- Contenido Principal del Dashboard -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+        <!-- Columna Izquierda: Control del Bot -->
+        <div class="md:col-span-2 bg-gray-800 rounded-lg shadow-lg p-8 border border-gray-700">
+            <h2 class="text-2xl font-semibold text-white mb-6">Control del Bot</h2>
+            
+            <div class="mb-6 p-4 bg-gray-700 rounded-md">
+                <p class="text-sm text-gray-400 mb-1">Estado Actual:</p>
+                {% if settings.isActive %}
+                    <span class="text-lg font-bold text-green-400">Activo</span>
+                {% else %}
+                    <span class="text-lg font-bold text-red-400">Inactivo</span>
+                {% endif %}
+            </div>
+            
+            <div class="mb-6 p-4 bg-gray-700 rounded-md">
+                <p class="text-sm text-gray-400 mb-1">Estrategia Actual:</p>
+                <p class="text-lg text-white">Buscando operaciones en 
+                    <span class="font-bold text-blue-400">{{ settings.activo|replace('_', ' ')|title }}</span>
+                </p>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center space-x-4">
+                {% if settings.isActive %}
+                    <!-- Botón Desactivar -->
+                    <form action="{{ url_for('deactivate_bot') }}" method="POST">
+                        <button type="submit" class="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-md transition-colors duration-200">
+                            Desactivar Bot
+                        </button>
+                    </form>
+                {% else %}
+                    <!-- Botón Activar -->
+                    <form action="{{ url_for('activate_bot') }}" method="POST">
+                        <button type="submit" class="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md transition-colors duration-200">
+                            Activar Bot
+                        </button>
+                    </form>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Tarjeta 2: Análisis IA (¡NUEVA!) -->
-        <div class="col-lg-7 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h4 class="card-title mb-0">Análisis IA (Gemini)</h4>
-                    <p class="text-muted">Sugerencia para el activo seleccionado.</p>
-                    <hr> 
-                    <i class="bi bi-magic card-icon"></i>
-                    
-                    <!-- Contenido dinámico (simulado) basado en el activo -->
-                    {% if "btc" in selected_asset %}
-                        <h3 class="text-success fw-bold">COMPRA FUERTE</h3>
-                        <p class="fs-5">Nuestros modelos detectan una fuerte acumulación de volumen en <strong class="text-warning">Bitcoin</strong>. El sentimiento en redes es positivo. Alta probabilidad de ruptura alcista.</p>
-                    {% elif "eth" in selected_asset %}
-                        <h3 class="text-warning fw-bold">NEUTRAL</h3>
-                        <p class="fs-5">Volatilidad alta en <strong class="text-info">Ethereum</strong>. El bot esperará una confirmación de ruptura por encima de la resistencia de $3,100.</p>
-                    {% elif "oro" in selected_asset %}
-                        <h3 class="text-danger fw-bold">VENTA DÉBIL</h3>
-                        <p class="fs-5">Indicadores de sobrecompra en <strong class="text-warning">Oro</strong>. El bot buscará posiciones cortas si el precio no logra mantener el soporte.</p>
-                    {% else %}
-                        <h3 class="text-secondary fw-bold">ESPERANDO DATOS</h3>
-                        <p class="fs-5">El análisis de IA está procesando el activo <strong class="text-primary">{{ selected_asset | replace("_", " ") | capitalize }}</strong>. Los datos estarán disponibles en breve.</p>
-                    {% endif %}
-
-                    <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-primary mt-auto">
-                      <i class="bi bi-search"></i> Ver análisis completo
-                    </a>
+        <!-- Columna Derecha: Análisis IA (Snippet) -->
+        <div class="md:col-span-1 bg-gray-800 rounded-lg shadow-lg p-8 border border-gray-700">
+            <h2 class="text-2xl font-semibold text-white mb-6">Análisis IA</h2>
+            
+            {% if ai_snippet and 'Error:' not in ai_snippet %}
+                <p class="text-gray-400 mb-4">Sugerencia rápida para tu activo seleccionado ({{ settings.activo|replace('_', ' ')|title }}):</p>
+                <div class="prose prose-invert text-gray-300">
+                    <!-- Mostramos el snippet de la IA -->
+                    <p>{{ ai_snippet|truncate(250, True, '...')|replace('\n', '<br>')|safe }}</p>
                 </div>
+                <a href="{{ url_for('sugerencias') }}" class="inline-block mt-4 text-blue-400 hover:text-blue-300 font-medium">
+                    Ver análisis completo &rarr;
+                </a>
+            {% elif 'Error:' in ai_snippet %}
+                 <p class="text-red-400">{{ ai_snippet }}</p>
+            {% else %}
+                <p class="text-gray-400">Activa el bot y ve a "Sugerencias IA" para obtener tu primer análisis.</p>
+            {% endif %}
+        </div>
+
+        <!-- Fila Inferior: Mercado en Vivo (Placeholder) -->
+        <div class="md:col-span-3 bg-gray-800 rounded-lg shadow-lg p-8 border border-gray-700">
+            <h2 class="text-2xl font-semibold text-white mb-6">Mercado en Vivo</h2>
+            <p class="text-gray-400">Gráfica del activo seleccionado: 
+                <span class="font-bold text-blue-400">{{ settings.activo|replace('_', ' ')|title }}</span>
+            </p>
+            <!-- (Aquí iría tu gráfica de TradingView o similar) -->
+            <div class="mt-4 text-center text-gray-500">
+                (Gráfica de mercado en vivo próximamente)
             </div>
         </div>
 
-    </div> <!-- Fin .row 1 -->
-
-    <!-- 
-      FILA 2: Gráfica de Mercado en Vivo (¡NUEVA!)
-    -->
-    <div class="row">
-        <div class="col-12 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h4 class="card-title mb-0">Mercado en Vivo</h4>
-                    <p class="text-muted">Gráfica del activo seleccionado: <strong class="text-primary">{{ selected_asset | replace("_", " ") | capitalize }}</strong></H4>
-                    <hr> 
-                    <i class="bi bi-bar-chart-line card-icon"></i>
-                    
-                    <!-- 
-                      Contenedor VACÍO para la gráfica.
-                      El script de abajo lo llenará.
-                    -->
-                    <div class="tradingview-widget-container" style="height: 450px;" id="tv-widget-container">
-                      <div class="tradingview-widget-container__widget"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> <!-- Fin .row 2 -->
-
-</div> <!-- Fin .container -->
-
-<!-- 
-  SCRIPT LOADER (El que SÍ funciona)
-  Este script ahora crea la GRÁFICA GRANDE (Symbol Overview)
--->
-<script type="text/javascript">
-
-  // 1. Recibimos la variable de Python (Flask)
-  const selectedAsset = "{{ selected_asset }}";
-
-  // 2. Creamos un "traductor" de nuestros ajustes a símbolos de TradingView
-  const symbolTranslator = {
-    "crypto_btc_usd": "BINANCE:BTCUSDT",
-    "crypto_eth_usd": "BINANCE:ETHUSDT",
-    "crypto_sol_usd": "BINANCE:SOLUSDT",
-    "forex_eur_usd": "FX:EURUSD",
-    "commodity_oro": "OANDA:XAUUSD",
-    "index_spx_500": "FOREXCOM:SPXUSD"
-  };
-
-  // 3. Buscamos el símbolo (o usamos BTC como default)
-  let symbolToShow = symbolTranslator[selectedAsset] || "BINANCE:BTCUSDT";
-
-  // 4. Esperamos a que la página se cargue (para evitar errores)
-  window.addEventListener('load', function() {
-    
-    // 5. Preparamos la configuración de la GRÁFICA GRANDE
-    const widgetConfig = {
-      "symbols": [
-        [ symbolToShow ] // <-- ¡AQUÍ USAMOS LA VARIABLE!
-      ],
-      "chartOnly": false,
-      "width": "100%",
-      "height": 450,
-      "locale": "es",
-      "colorTheme": "dark",
-      "autosize": false,
-      "showVolume": false,
-      "showMA": false,
-      "hideDateRanges": false,
-      "hideMarketStatus": false,
-      "hideSymbolLogo": false,
-      "scalePosition": "right",
-      "scaleMode": "Normal",
-      "fontFamily": "inherit",
-      "fontSize": "10",
-      "noTimeScale": false,
-      "valuesTracking": "1",
-      "changeMode": "price-and-percent",
-      "chartType": "area",
-      "maLineColor": "#2962FF",
-      "maLineWidth": 1,
-      "maLength": 9,
-      "backgroundColor": "rgba(0, 0, 0, 0)", // Transparente
-      "lineWidth": 2,
-      "lineType": 0,
-      "dateRanges": ["1d", "1m", "3m", "1y", "5y"]
-    };
-
-    // 6. Creamos el script y lo "inyectamos" en la página
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https.://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js';
-    script.async = true;
-    script.innerHTML = JSON.stringify(widgetConfig);
-
-    document.getElementById('tv-widget-container').appendChild(script);
-  });
-</script>
+    </div>
+</div>
 {% endblock %}
