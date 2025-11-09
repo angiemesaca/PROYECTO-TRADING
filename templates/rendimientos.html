@@ -1,177 +1,234 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Wallet Trainer{% endblock %}
+{% block title %}Rendimiento del Bot{% endblock %}
 
 {% block content %}
-
-<!-- Mensaje de Bienvenida -->
-<div class="mb-4">
-    <h1 class="display-5 fw-bold text-white">Bienvenido, {{ profile.username }}</h1>
-    <p class="fs-4 text-white-50">Este es tu panel de control. ¿Listo para operar?</p>
-</div>
-
-<div class="row g-4">
+<div class="container-fluid">
     
-    <!-- Columna Izquierda (Control y Mercado) -->
-    <div class="col-lg-8">
+    <!-- Título y Botón de Backtest -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <span class="text-primary me-3">
+                <i class="bi bi-graph-up-arrow" style="font-size: 2.5rem;"></i>
+            </span>
+            <div>
+                <h1 class="display-5 fw-bold text-white">Rendimiento del Bot</h1>
+                <p class="fs-5 text-white-50">Análisis de las operaciones simuladas por tu estrategia.</p>
+            </div>
+        </div>
         
-        <!-- Tarjeta: Control del Bot -->
-        <div class="card bg-dark text-white shadow-sm mb-4 border-secondary">
-            <div class="card-header bg-secondary-subtle text-white-50 fw-bold">
-                <i class="bi bi-robot"></i>
-                Control del Bot
-            </div>
-            <div class="card-body p-4">
-                <p class="card-text text-white-50">Activa o desactiva tu estrategia.</p>
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <span class="text-white-50">Estado Actual:</span>
-                        {% if settings.isActive %}
-                            <strong class="text-success d-block fs-5">Activo</strong>
-                        {% else %}
-                            <strong class="text-danger d-block fs-5">Inactivo</strong>
-                        {% endif %}
-                    </div>
-                    <div class="col-6">
-                        <span class="text-white-50">Estrategia Actual:</span>
-                        <strong class="text-primary-emphasis d-block fs-5">
-                            Buscando operaciones en 
-                            <span class="text-decoration-underline">{{ settings.activo.split('_')[-2] | upper }}/{{ settings.activo.split('_')[-1] | upper }}</span>
-                        </strong>
-                    </div>
-                </div>
-
-                <!-- 
-                    NOTA: Estos botones están deshabilitados porque usamos el modo Backtest.
-                    El 'isActive' solo se usa para la IA, no para el bot "en vivo".
-                -->
-                {% if settings.isActive %}
-                    <button class="btn btn-danger btn-lg w-100" disabled>
-                        <i class="bi bi-stop-circle"></i> 
-                        Desactivar Bot (Modo Backtest)
-                    </button>
-                {% else %}
-                    <button class="btn btn-success btn-lg w-100" disabled>
-                        <i class="bi bi-play-circle"></i> 
-                        Activar Bot (Modo Backtest)
-                    </button>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Tarjeta: Mercado en Vivo -->
-        <div class="card bg-dark text-white shadow-sm border-secondary">
-            <div class="card-header bg-secondary-subtle text-white-50 fw-bold">
-                <i class="bi bi-graph-up"></i>
-                Mercado en Vivo
-            </div>
-            <div class="card-body p-4">
-                <h5 class="card-title text-white">
-                    Gráfica del activo seleccionado: 
-                    <span class="text-primary-emphasis">{{ settings.activo.split('_')[-2] | upper }}/{{ settings.activo.split('_')[-1] | upper }}</span>
-                </h5>
-                
-                <!-- 
-                  ¡AQUÍ ESTÁ EL CAMBIO! 
-                  Quitamos el "(próximamente)" y pusimos este 'div'.
-                  El script de abajo lo llenará.
-                -->
-                <div id="tv-mini-chart-widget-container" style="height: 400px; width: 100%;">
-                    <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
-                </div>
-                
-            </div>
+        <!-- 
+          ¡EL BOTÓN DE NUESTRO PIVOT!
+          Esto llama a la nueva ruta /run_backtest
+        -->
+        <div class="d-flex gap-2">
+            <form action="{{ url_for('run_backtest') }}" method="POST">
+                <button type="submit" class="btn btn-primary btn-lg shadow">
+                    <i class="bi bi-play-fill"></i> Ejecutar Simulación
+                </button>
+            </form>
+            <form action="{{ url_for('clear_history') }}" method="POST">
+                <button type="submit" class="btn btn-outline-danger btn-lg">
+                    <i class="bi bi-trash"></i> Limpiar
+                </button>
+            </form>
         </div>
     </div>
-    
-    <!-- Columna Derecha (Análisis IA) -->
-    <div class="col-lg-4">
-        <div class="card bg-dark text-white shadow-sm border-secondary h-100">
-            <div class="card-header bg-secondary-subtle text-white-50 fw-bold">
-                <i class="bi bi-magic"></i>
-                Análisis IA (Simulado)
+
+    <!-- Estadísticas Clave -->
+    <div class="row g-4 mb-4">
+        <!-- Tarjeta de Ganancia Neta -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100 bg-dark text-white">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-white-50 small text-uppercase fw-bold">Ganancia Neta Total</h3>
+                    <p class="display-6 fw-bold text-white mt-2">
+                        ${{ "%.2f"|format(stats.ganancia_total) }}
+                    </p>
+                    {% if stats.ganancia_total > 0 %}
+                        <span class="text-success small"><i class="bi bi-arrow-up"></i> +${{ "%.2f"|format(stats.ganancia_total) }} vs inicio</span>
+                    {% elif stats.ganancia_total < 0 %}
+                        <span class="text-danger small"><i class="bi bi-arrow-down"></i> -${{ "%.2f"|format(stats.ganancia_total|abs) }} vs inicio</span>
+                    {% else %}
+                        <span class="text-white-50 small">Sin cambios</span>
+                    {% endif %}
+                </div>
             </div>
-            <div class="card-body p-4 d-flex flex-column">
-                <h5 class="card-title text-white">Sugerencia rápida para tu activo</h5>
-                
-                <!-- 
-                  NOTA: Este snippet es un texto estático de ejemplo.
-                  El análisis real (el que funciona) está en la página de 'Sugerencias IA'
-                -->
-                <p class="text-white-50 small">
-                    **Análisis de Activo (Simulado):** Nuestros modelos detectan una fuerte acumulación de volumen en el activo seleccionado. El sentimiento en redes es positivo. Alta probabilidad de ruptura alcista.
-                </p>
-                <p class="text-white-50 small">
-                    **Sugerencia (Perfil {{ profile.risk }}):** Basado en tu perfil, la estrategia actual es adecuada. Considera asegurar ganancias en la próxima resistencia.
-                </p>
-                
-                <div class="mt-auto"> <!-- Empuja el botón al fondo -->
-                    <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-primary w-100">
-                        <i class="bi bi-search"></i> Ver análisis completo
-                    </a>
+        </div>
+        <!-- Tarjeta de Win Rate -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100 bg-dark text-white">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-white-50 small text-uppercase fw-bold">Win Rate</h3>
+                    <p class="display-6 fw-bold text-white mt-2">{{ "%.1f"|format(stats.win_rate) }}%</p>
+                    <span class="text-white-50 small">{{ stats.trades_ganadores }} de {{ stats.total_trades }} trades</span>
+                </div>
+            </div>
+        </div>
+        <!-- Tarjeta de Operaciones Totales -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100 bg-dark text-white">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-white-50 small text-uppercase fw-bold">Operaciones Totales</h3>
+                    <p class="display-6 fw-bold text-white mt-2">{{ stats.total_trades }}</p>
+                    <span class="text-white-50 small">Trades ejecutados</span>
+                </div>
+            </div>
+        </div>
+        <!-- Tarjeta de Trades Ganadores -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm border-0 h-100 bg-dark text-white">
+                <div class="card-body p-4">
+                    <h3 class="card-title text-white-50 small text-uppercase fw-bold">Trades Ganadores</h3>
+                    <p class="display-6 fw-bold text-white mt-2">{{ stats.trades_ganadores }}</p>
+                    <span class="text-white-50 small">Operaciones con PNL positivo</span>
                 </div>
             </div>
         </div>
     </div>
-    
+
+    <!-- Gráfica y Tabla -->
+    <div class="row g-4">
+        <!-- Gráfica de Avance -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0 bg-dark text-white">
+                <div class="card-body p-4">
+                    <h2 class="h4 fw-bold text-white mb-4">Avance de Capital (PNL Acumulado)</h2>
+                    {% if trades %}
+                        <div style="height: 350px;">
+                            <canvas id="pnlChart"></canvas>
+                        </div>
+                    {% else %}
+                        <p class="text-white-50">No hay suficientes datos para mostrar la gráfica. Ejecuta una simulación para empezar.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial de Operaciones -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0 bg-dark text-white">
+                <div class="card-body p-4">
+                    <h2 class="h4 fw-bold text-white mb-4">Historial de Operaciones</h2>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Timestamp</th>
+                                    <th scope="col">Activo</th>
+                                    <th scope="col">Tipo</th>
+                                    <th scope="col">Precio</th>
+                                    <th scope="col">PNL ($)</th>
+                                    <th scope="col">PNL Acumulado ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if trades %}
+                                    {% for trade in trades|reverse %}
+                                    <tr>
+                                        <td class="text-white-50">{{ trade.timestamp }}</td>
+                                        <td class="fw-bold">{{ trade.asset }}</td>
+                                        <td>
+                                            {% if trade.type == 'buy' %}
+                                                <span class="badge text-bg-success">Compra</span>
+                                            {% else %}
+                                                <span class="badge text-bg-danger">Venta</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>${{ "%.2f"|format(trade.price) }}</td>
+                                        <td class{% if trade.pnl > 0 %}"text-success"{% elif trade.pnl < 0 %}"text-danger"{% else %}""{% endif %}>
+                                            {{ "%.2f"|format(trade.pnl) }}
+                                        </td>
+                                        <td class="fw-bold">
+                                            {{ "%.2f"|format(trade.pnl_acumulado) }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-white-50 py-5">
+                                            No hay operaciones en el historial.
+                                            <br>
+                                            <span class="small">Haz clic en "Ejecutar Simulación" para generar un backtest.</span>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-
 {% endblock %}
 
-
-<!-- 
-  ¡AQUÍ ESTÁ LA MAGIA! 
-  Añadimos este bloque de scripts al final
--->
 {% block page_scripts %}
-<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-<script type="text/javascript">
-    
-    // 1. Esta función traduce nuestro "activo" (ej: crypto_btc_usd)
-    //    a un "símbolo" que TradingView entiende (ej: BINANCE:BTCUSD)
-    function getTradingViewSymbol(assetName) {
-        if (!assetName) return "BINANCE:BTCUSD"; // Default
-
-        if (assetName.includes("crypto_btc_usd")) return "BINANCE:BTCUSD";
-        if (assetName.includes("crypto_eth_usd")) return "BINANCE:ETHUSD";
-        if (assetName.includes("crypto_sol_usd")) return "BINANCE:SOLUSD";
-        if (assetName.includes("forex_eur_usd")) return "FX:EURUSD";
-        if (assetName.includes("commodity_oro")) return "OANDA:XAUUSD";
-        if (assetName.includes("index_spx_500")) return "SP:SPX";
+<!-- Script para Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+    const labels = {{ labels|tojson }};
+    if (labels && labels.length > 0) {
+        const ctx = document.getElementById('pnlChart').getContext('2d');
+        const pnlData = {{ pnl_data|tojson }};
         
-        return "BINANCE:BTCUSD"; // Default si no lo encuentra
+        // Estilo de Bootstrap Dark
+        Chart.defaults.color = '#adb5bd';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'PNL Acumulado ($)',
+                    data: pnlData,
+                    borderColor: '#0d6efd', // Azul de Bootstrap
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#0d6efd',
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    fill: 'origin',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) { return '$' + value; }
+                        }
+                    },
+                    x: {
+                        ticks: { maxTicksLimit: 10 }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        backgroundColor: '#212529',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
-
-    // 2. Obtenemos el activo actual de tus Ajustes
-    //    Usamos 'tojson' para pasar la variable de Flask (Python) a JavaScript
-    const currentAsset = {{ settings.activo | tojson }};
-    const tvSymbol = getTradingViewSymbol(currentAsset);
-
-    // 3. Cargamos el widget de TradingView
-    new TradingView.widget({
-      "width": "100%",
-      "height": 400,
-      "symbol": tvSymbol, // ¡Aquí usamos el símbolo dinámico!
-      "interval": "D",
-      "timezone": "Etc/UTC",
-      "theme": "dark", // Tema oscuro
-      "style": "1",
-      "locale": "es",
-      "enable_publishing": false,
-      "allow_symbol_change": false,
-      "container_id": "tv-mini-chart-widget-container"
-    });
+});
 </script>
 {% endblock %}
-```
-
----
-
-### Tu Tarea
-
-1.  **Reemplaza** tu `templates/dashboard.html` con este nuevo archivo.
-2.  **Sube los cambios a GitHub:**
-    ```bash
-    git add templates/dashboard.html
-    git commit -m "Añade gráfico dinámico de TradingView al dashboard"
-    git push origin main

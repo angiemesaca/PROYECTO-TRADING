@@ -1,102 +1,165 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard{% endblock %}
+{% block title %}Dashboard - Wallet Trainer{% endblock %}
 
 {% block content %}
 
 <!-- Mensaje de Bienvenida -->
 <div class="mb-4">
     <h1 class="display-5 fw-bold text-white">Bienvenido, {{ profile.username }}</h1>
-    <p class="fs-5 text-white-50">Este es tu panel de control. ¿Listo para operar?</p>
+    <p class="fs-4 text-white-50">Este es tu panel de control. ¿Listo para operar?</p>
 </div>
 
-<!-- Contenido Principal del Dashboard -->
 <div class="row g-4">
-
-    <!-- Columna Izquierda: Control del Bot -->
+    
+    <!-- Columna Izquierda (Control y Mercado) -->
     <div class="col-lg-8">
-        <div class="card shadow-sm border-0 h-100 bg-dark text-white">
-            <div class="card-body p-4">
-                <h2 class="card-title h4 fw-bold mb-4">
-                    <i class="bi bi-robot text-primary"></i> Control del Bot
-                </h2>
-                
-                <div class="card bg-dark-subtle text-white-50 border-secondary p-3 mb-3">
-                    <label class="form-label small">Estado Actual:</label>
-                    {% if settings.isActive %}
-                        <span class="h5 fw-bold text-success">Activo</span>
-                    {% else %}
-                        <span class="h5 fw-bold text-danger">Inactivo</span>
-                    {% endif %}
-                </div>
-                
-                <div class="card bg-dark-subtle text-white-50 border-secondary p-3 mb-4">
-                    <label class="form-label small">Estrategia Actual:</label>
-                    <p class="h5 text-white">Buscando operaciones en 
-                        <span class="fw-bold text-primary">{{ settings.activo|replace('_', ' ')|title }}</span>
-                    </p>
-                </div>
-
-                <!-- Botones de Acción -->
-                <div class="d-grid gap-2 d-md-block">
-                    {% if settings.isActive %}
-                        <!-- Botón Desactivar -->
-                        <form action="{{ url_for('deactivate_bot') }}" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-danger btn-lg shadow">
-                                <i class="bi bi-stop-circle"></i> Desactivar Bot
-                            </button>
-                        </form>
-                    {% else %}
-                        <!-- Botón Activar -->
-                        <form action="{{ url_for('activate_bot') }}" method="POST" class="d-inline">
-                            <button type="submit" class="btn btn-success btn-lg shadow">
-                                <i class="bi bi-play-circle"></i> Activar Bot
-                            </button>
-                        </form>
-                    {% endif %}
-                </div>
+        
+        <!-- Tarjeta: Control del Bot -->
+        <div class="card bg-dark text-white shadow-sm mb-4 border-secondary">
+            <div class="card-header bg-secondary-subtle text-white-50 fw-bold">
+                <i class="bi bi-robot"></i>
+                Control del Bot
             </div>
-        </div>
-    </div>
-
-    <!-- Columna Derecha: Análisis IA (Snippet) -->
-    <div class="col-lg-4">
-        <div class="card shadow-sm border-0 h-100 bg-dark text-white">
             <div class="card-body p-4">
-                <h2 class="card-title h4 fw-bold mb-4">
-                    <i class="bi bi-magic text-info"></i> Análisis IA
-                </h2>
-                
-                {% if ai_snippet and 'Error:' not in ai_snippet %}
-                    <p class="text-white-50 mb-3">Sugerencia rápida para tu activo:</p>
-                    <div class="text-white">
-                        <p>{{ ai_snippet|truncate(250, True, '...')|safe }}</p>
+                <p class="card-text text-white-50">Activa o desactiva tu estrategia.</p>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <span class="text-white-50">Estado Actual:</span>
+                        {% if settings.isActive %}
+                            <strong class="text-success d-block fs-5">Activo</strong>
+                        {% else %}
+                            <strong class="text-danger d-block fs-5">Inactivo</strong>
+                        {% endif %}
                     </div>
-                    <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-info btn-sm mt-3">
-                        Ver análisis completo &rarr;
-                    </a>
-                {% elif ai_snippet and 'Error:' in ai_snippet %}
-                     <p class="text-danger">{{ ai_snippet }}</p>
+                    <div class="col-6">
+                        <span class="text-white-50">Estrategia Actual:</span>
+                        <strong class="text-primary-emphasis d-block fs-5">
+                            Buscando operaciones en 
+                            <span class="text-decoration-underline">{{ settings.activo.split('_')[-2] | upper }}/{{ settings.activo.split('_')[-1] | upper }}</span>
+                        </strong>
+                    </div>
+                </div>
+
+                <!-- 
+                    NOTA: Estos botones están deshabilitados porque usamos el modo Backtest.
+                    El 'isActive' solo se usa para la IA, no para el bot "en vivo".
+                -->
+                {% if settings.isActive %}
+                    <button class="btn btn-danger btn-lg w-100" disabled>
+                        <i class="bi bi-stop-circle"></i> 
+                        Desactivar Bot (Modo Backtest)
+                    </button>
                 {% else %}
-                    <p class="text-white-50">Activa el bot y ve a "Sugerencias IA" para obtener tu primer análisis.</p>
+                    <button class="btn btn-success btn-lg w-100" disabled>
+                        <i class="bi bi-play-circle"></i> 
+                        Activar Bot (Modo Backtest)
+                    </button>
                 {% endif %}
             </div>
         </div>
-    </div>
 
-    <!-- Fila Inferior: Mercado en Vivo (Placeholder) -->
-    <div class="col-12">
-        <div class="card shadow-sm border-0 bg-dark text-white">
+        <!-- Tarjeta: Mercado en Vivo -->
+        <div class="card bg-dark text-white shadow-sm border-secondary">
+            <div class="card-header bg-secondary-subtle text-white-50 fw-bold">
+                <i class="bi bi-graph-up"></i>
+                Mercado en Vivo
+            </div>
             <div class="card-body p-4">
-                <h2 class="card-title h4 fw-bold mb-4">Mercado en Vivo</h2>
-                <p class="text-white-50">Gráfica del activo seleccionado: 
-                    <span class="fw-bold text-primary">{{ settings.activo|replace('_', ' ')|title }}</span>
+                <h5 class="card-title text-white">
+                    Gráfica del activo seleccionado: 
+                    <span class="text-primary-emphasis">{{ settings.activo.split('_')[-2] | upper }}/{{ settings.activo.split('_')[-1] | upper }}</span>
+                </h5>
+                
+                <!-- 
+                  ¡AQUÍ ESTÁ EL CAMBIO! 
+                  Quitamos el "(próximamente)" y pusimos este 'div'.
+                  El script de abajo lo llenará.
+                -->
+                <div id="tv-mini-chart-widget-container" style="height: 400px; width: 100%;">
+                    <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    
+    <!-- Columna Derecha (Análisis IA) -->
+    <div class="col-lg-4">
+        <div class="card bg-dark text-white shadow-sm border-secondary h-100">
+            <div class="card-header bg-secondary-subtle text-white-50 fw-bold">
+                <i class="bi bi-magic"></i>
+                Análisis IA (Simulado)
+            </div>
+            <div class="card-body p-4 d-flex flex-column">
+                <h5 class="card-title text-white">Sugerencia rápida para tu activo</h5>
+                
+                <!-- 
+                  NOTA: Este snippet es un texto estático de ejemplo.
+                  El análisis real (el que funciona) está en la página de 'Sugerencias IA'
+                -->
+                <p class="text-white-50 small">
+                    **Análisis de Activo (Simulado):** Nuestros modelos detectan una fuerte acumulación de volumen en el activo seleccionado. El sentimiento en redes es positivo. Alta probabilidad de ruptura alcista.
                 </p>
-                <div class="mt-4 text-center text-white-50">
-                    (Gráfica de mercado en vivo próximamente)
+                <p class="text-white-50 small">
+                    **Sugerencia (Perfil {{ profile.risk }}):** Basado en tu perfil, la estrategia actual es adecuada. Considera asegurar ganancias en la próxima resistencia.
+                </p>
+                
+                <div class="mt-auto"> <!-- Empuja el botón al fondo -->
+                    <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-search"></i> Ver análisis completo
+                    </a>
                 </div>
             </div>
         </div>
     </div>
+    
 </div>
+
+{% endblock %}
+
+
+<!-- 
+  ¡AQUÍ ESTÁ LA MAGIA! 
+  Añadimos este bloque de scripts al final
+-->
+{% block page_scripts %}
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<script type="text/javascript">
+    
+    // 1. Esta función traduce nuestro "activo" (ej: crypto_btc_usd)
+    //    a un "símbolo" que TradingView entiende (ej: BINANCE:BTCUSD)
+    function getTradingViewSymbol(assetName) {
+        if (!assetName) return "BINANCE:BTCUSD"; // Default
+
+        if (assetName.includes("crypto_btc_usd")) return "BINANCE:BTCUSD";
+        if (assetName.includes("crypto_eth_usd")) return "BINANCE:ETHUSD";
+        if (assetName.includes("crypto_sol_usd")) return "BINANCE:SOLUSD";
+        if (assetName.includes("forex_eur_usd")) return "FX:EURUSD";
+        if (assetName.includes("commodity_oro")) return "OANDA:XAUUSD";
+        if (assetName.includes("index_spx_500")) return "SP:SPX";
+        
+        return "BINANCE:BTCUSD"; // Default si no lo encuentra
+    }
+
+    // 2. Obtenemos el activo actual de tus Ajustes
+    //    Usamos 'tojson' para pasar la variable de Flask (Python) a JavaScript
+    const currentAsset = {{ settings.activo | tojson }};
+    const tvSymbol = getTradingViewSymbol(currentAsset);
+
+    // 3. Cargamos el widget de TradingView
+    new TradingView.widget({
+      "width": "100%",
+      "height": 400,
+      "symbol": tvSymbol, // ¡Aquí usamos el símbolo dinámico!
+      "interval": "D",
+      "timezone": "Etc/UTC",
+      "theme": "dark", // Tema oscuro
+      "style": "1",
+      "locale": "es",
+      "enable_publishing": false,
+      "allow_symbol_change": false,
+      "container_id": "tv-mini-chart-widget-container"
+    });
+</script>
 {% endblock %}
