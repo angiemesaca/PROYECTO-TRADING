@@ -1,22 +1,25 @@
 import random
 from datetime import datetime, timedelta
-
-# Importamos AMBAS conexiones
-from firebase_config import db, admin_db_ref
+# ¡SOLO IMPORTAMOS 'db' (pyrebase)
+from firebase_config import db
 
 class BotService:
     def __init__(self):
+        # Conexión Pyrebase (para operaciones con token)
         self.db = db
-        self.admin_db = admin_db_ref
+        # ¡ELIMINADO! self.admin_db ya no se usa
 
-    # ... (Todas las funciones que usan TOKEN se quedan igual) ...
-    
+    # -----------------------------------------------------------------
+    # --- FUNCIONES LLAMADAS POR EL VIEWMODEL (USAN TOKEN) ---
+    # (Todas estas ya las tenías y funcionan)
+    # -----------------------------------------------------------------
+
     def get_bot_settings(self, user_id, token):
         try:
             data = self.db.child("bot_settings").child(user_id).get(token=token)
             return data.val()
         except Exception as e:
-            print(f"[ERROR] get_bot_settings (con token): {e}")
+            print(f"Error al leer ajustes del bot: {e}")
             return None
 
     def save_bot_settings(self, user_id, data, token):
@@ -24,7 +27,7 @@ class BotService:
             self.db.child("bot_settings").child(user_id).set(data, token=token)
             return True
         except Exception as e:
-            print(f"[ERROR] save_bot_settings (con token): {e}")
+            print(f"Error al guardar ajustes del bot: {e}")
             return False
 
     def get_trade_log(self, user_id, token):
@@ -32,10 +35,8 @@ class BotService:
             data = self.db.child("trade_log").child(user_id).get(token=token)
             return data.val()
         except Exception as e:
-            print(f"[ERROR] get_trade_log (con token): {e}")
+            print(f"Error al leer trade log: {e}")
             return {}
-    
-    # ... (El resto de tus funciones con token: get_api_keys, save_api_key, etc.) ...
     
     def get_api_keys(self, user_id, token):
         try:
@@ -63,6 +64,7 @@ class BotService:
             return False
             
     def clear_trade_log(self, user_id, token):
+        """Borra el historial de trades de un usuario."""
         try:
             self.db.child("trade_log").child(user_id).remove(token=token)
             return True
@@ -70,94 +72,23 @@ class BotService:
             print(f"Error al borrar trade log: {e}")
             return False
             
+    # --- ¡NUESTRA FUNCIÓN DE BACKTEST! ---
     def generate_mock_trade_log(self, user_id, token, asset_name="crypto_btc_usd"):
-        # Esta función ya no se usa, pero la dejamos por si acaso
-        print(f"--- Generando historial mock (función antigua) ---")
-        return True
-
-    # -----------------------------------------------------------------
-    # --- ¡FUNCIONES DEL BOT (SIN TOKEN) CON MÁS LOGS! ---
-    # -----------------------------------------------------------------
-
-    def execute_bot_cycle(self):
         """
-        Esta es la función MAESTRA que llama el scheduler.
-        NO usa token porque es el servidor.
+        Simula un historial de operaciones (log) para el bot.
+        ¡Usa .set() para REEMPLAZAR el log anterior (es un backtest nuevo!)
         """
-        
-        # ¡NUEVO LOG!
-        print("[BOT_CYCLE] ¡Iniciando ciclo! Verificando Admin DB...")
-        
-        if self.admin_db is None:
-            print("[BOT_CYCLE_ERROR] ¡Admin DB es None! El bot no puede leer.")
-            return
-
-        print("[BOT_CYCLE] Admin DB OK. Intentando leer 'bot_settings'...")
-        
+        print(f"--- Generando historial mock de trades para {user_id} con {asset_name} ---")
         try:
-            all_settings = self.admin_db.child("bot_settings").get()
-
-            if not all_settings:
-                # ¡NUEVO LOG!
-                print("[BOT_CYCLE] No se encontraron 'bot_settings' en la base de datos.")
-                return
-
-            # ¡NUEVO LOG!
-            print(f"[BOT_CYCLE] Encontrados {len(all_settings)} perfiles de settings. Iterando...")
-
-            active_bots_found = 0
-            for user_id, settings in all_settings.items():
-                
-                # ¡NUEVO LOG!
-                # print(f"[BOT_CYCLE] Chequeando User: {user_id}...") # (Demasiado ruidoso)
-
-                if settings and settings.get('isActive', False):
-                    # ¡NUEVO LOG!
-                    print(f"[BOT_CYCLE_ACTIVE] ¡Bot ACTIVO detectado para {user_id}! Ejecutando simulación...")
-                    active_bots_found += 1
-                    self.run_live_simulation(user_id, settings)
-                
-            if active_bots_found == 0:
-                print("[BOT_CYCLE] Ciclo terminado. No se encontraron bots activos.")
-
-        except Exception as e:
-            # ¡NUEVO LOG!
-            print(f"[BOT_CYCLE_ERROR] ¡CRASH! El ciclo del bot falló: {e}")
-
-    def run_live_simulation(self, user_id, settings):
-        """
-        Simula UN solo trade "en vivo" y lo AÑADE al historial.
-        """
-        try:
-            # ¡NUEVO LOG!
-            print(f"[SIMULATION] Iniciando simulación para {user_id}...")
+            log_ref = self.db.child("trade_log").child(user_id)
+            new_log_data = {}
             
-            # --- Lógica de PNL Acumulado ---
-            last_trade = None
-            last_pnl_acumulado = 0.0
-            last_price = 0.0
-
-            # 1. Leer el último trade (si existe)
-            log_ref = self.admin_db.child("trade_log").child(user_id)
-            # 'limitToLast(1)' es la forma eficiente de obtener solo el último
-            last_trade_query = log_ref.order_by_key().limit_to_last(1).get()
-
-            if last_trade_query:
-                # 'last_trade_query' es un diccionario, ej: {'trade_id_xyz': {...}}
-                trade_id, trade_data = last_trade_query.popitem()
-                last_trade = trade_data
-                last_pnl_acumulado = last_trade.get("pnl_acumulado", 0.0)
-                last_price = last_trade.get("price", 0.0)
-                
-                # ¡NUEVO LOG!
-                print(f"[SIMULATION] Último trade encontrado. PNL Acum: {last_pnl_acumulado}, Precio: {last_price}")
-
-            # 2. Determinar precio base
-            asset_name = settings.get("activo", "crypto_btc_usd")
-            base_price = 60000
+            # Lógica de Precio
+            base_price = 60000 
             price_fluctuation = 500
+            decimals = 2
             asset_display_name = "BTC/USD"
-            
+
             if "eth" in asset_name:
                 base_price = 3000
                 price_fluctuation = 100
@@ -166,31 +97,49 @@ class BotService:
                 base_price = 150
                 price_fluctuation = 10
                 asset_display_name = "SOL/USD"
+            elif "eur" in asset_name:
+                base_price = 1.10
+                price_fluctuation = 0.01
+                decimals = 4
+                asset_display_name = "EUR/USD"
+            elif "oro" in asset_name:
+                base_price = 2300
+                price_fluctuation = 20
+                asset_display_name = "Oro (XAU)"
+            elif "spx" in asset_name:
+                base_price = 5000
+                price_fluctuation = 50
+                asset_display_name = "S&P 500"
             
-            # Si ya teníamos un precio, lo usamos como base. Si no, usamos el default.
-            if last_price > 0:
-                base_price = last_price
-            
-            # 3. Simular el nuevo trade
-            current_price = round(base_price + random.uniform(-price_fluctuation, price_fluctuation), 2)
-            pnl_nuevo = round(random.uniform(-50, 75), 2)
-            nuevo_pnl_acumulado = round(last_pnl_acumulado + pnl_nuevo, 2)
-            
-            new_trade_data = {
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "asset": asset_display_name,
-                "type": random.choice(["buy", "sell"]),
-                "price": current_price,
-                "pnl": pnl_nuevo,
-                "pnl_acumulado": nuevo_pnl_acumulado
-            }
-            
-            # 4. Guardar el nuevo trade usando .push()
-            log_ref.push(new_trade_data)
-            
-            # ¡NUEVO LOG!
-            print(f"[SIMULATION] ¡Éxito! Nuevo trade guardado para {user_id}. Nuevo PNL Acum: {nuevo_pnl_acumulado}")
+            pnl_total = 0
+            current_time = datetime.now() - timedelta(days=5)
 
+            # Generamos 30 trades
+            for i in range(30):
+                current_time += timedelta(hours=random.randint(2, 6))
+                pnl = round(random.uniform(-150, 250), 2)
+                pnl_total += pnl
+                current_price = base_price + random.uniform(-price_fluctuation, price_fluctuation)
+                
+                trade_data = {
+                    "timestamp": current_time.strftime("%Y-%m-%d %H:%M"),
+                    "asset": asset_display_name,
+                    "type": random.choice(["buy", "sell"]),
+                    "price": round(current_price, decimals),
+                    "pnl": pnl,
+                    "pnl_acumulado": round(pnl_total, 2)
+                }
+                # Usamos generate_key para crear un ID único
+                new_log_data[self.db.generate_key()] = trade_data
+                base_price = current_price
+                
+            # ¡IMPORTANTE! Usamos .set() para REEMPLAZAR el historial
+            # con este nuevo backtest.
+            log_ref.set(new_log_data, token=token)
+            print("--- Historial mock de trades generado (Backtest). ---")
+            return True
         except Exception as e:
-            # ¡NUEVO LOG!
-            print(f"[SIMULATION_ERROR] ¡CRASH! Falló la simulación para {user_id}: {e}")
+            print(f"Error al generar log mock: {e}")
+            import traceback
+            print(traceback.format_exc())
+            return False

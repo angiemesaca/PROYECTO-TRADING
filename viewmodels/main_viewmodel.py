@@ -2,79 +2,60 @@ from model.auth_service import AuthService
 from model.db_service import DBService
 from model.bot_service import BotService
 import datetime
-import traceback
-
-# --- ¡NUEVO! IMPORTACIÓN DE IA ---
+import os
 import google.generativeai as genai
-import os # Para la API Key
-
-# --- ¡NUEVO! CONFIGURACIÓN DE IA ---
-try:
-    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-    if GEMINI_API_KEY:
-        genai.configure(api_key=GEMINI_API_KEY)
-        print("--- Modelo de IA (Gemini) configurado ---")
-    else:
-        print("ADVERTENCIA: GEMINI_API_KEY no encontrada. La IA no funcionará.")
-except Exception as e:
-    print(f"Error al configurar Gemini: {e}")
 
 class MainViewModel:
     def __init__(self):
         self.auth_service = AuthService()
         self.db_service = DBService()
-        self.bot_service = BotService()
+        self.bot_service = BotService() # Todavía lo usamos para get/save
         self.markets = self.db_service.get_markets()
         
-        # --- ¡NUEVO! Inicializar el modelo de IA ---
         try:
-            self.ai_model = genai.GenerativeModel('gemini-2.5-flash-preview-09-2025')
-        except Exception:
+            gemini_api_key = os.environ.get('GEMINI_API_KEY')
+            if gemini_api_key:
+                genai.configure(api_key=gemini_api_key)
+                self.ai_model = genai.GenerativeModel('gemini-1.5-flash')
+            else:
+                self.ai_model = None
+                print("[AI ERROR] GEMINI_API_KEY no encontrada.")
+        except Exception as e:
             self.ai_model = None
-
-    # ... (pega aquí todas tus funciones desde login() hasta clear_trades()) ...
+            print(f"[AI ERROR] No se pudo configurar Gemini: {e}")
 
     def login(self, email, password):
-        """Maneja el login. Llama al auth_service."""
         return self.auth_service.login(email, password)
 
     def register(self, email, password, username):
-        """Maneja el registro. Llama a auth y db services."""
         user = self.auth_service.register(email, password)
         if user and user.get('localId'):
             uid = user['localId']
             id_token = user['idToken']
             
-            # 1. Preparamos perfil inicial
             profile_data = {
-                "username": username,
-                "email": email,
+                "username": username, "email": email,
                 "created_at": datetime.datetime.now(datetime.UTC).isoformat(),
-                "selected_market": "crypto",
-                "risk": "medio",
-                "experience": "novato"
+                "selected_market": "crypto", "risk": "medio", "experience": "novato"
             }
             self.db_service.save_user_profile(uid, profile_data, id_token)
             
-            # 2. Preparamos AJUSTES INICIALES DEL BOT
             default_settings = {
-                "activo": "crypto_btc_usd",
-                "riesgo": "medio",
-                "horario": "00:00-23:59",
-                "indicadores": "RSI, MACD",
-                "isActive": False
+                "activo": "crypto_btc_usd", "riesgo": "medio",
+                "horario": "00:00-23:59", "indicadores": "RSI, MACD",
+                "isActive": False # El bot empieza apagado por defecto
             }
+            # ¡MODIFICADO! Usamos el bot_service normal (con token)
             self.bot_service.save_bot_settings(uid, default_settings, id_token)
-            
             return user
         return None
 
+    # ... (get_user_profile, update_user_profile, etc. se quedan igual) ...
     def get_user_profile(self, user_id, token):
         profile = self.db_service.get_user_profile(user_id, token)
         return profile if profile else {"username": "Usuario"}
 
     def update_user_profile(self, user_id, data, token):
-        """Actualiza el perfil del usuario (merge)."""
         current_profile = self.get_user_profile(user_id, token)
         current_profile.update(data)
         return self.db_service.save_user_profile(user_id, current_profile, token)
@@ -92,32 +73,26 @@ class MainViewModel:
         return self.db_service.delete_user_data(user_id, id_token)
 
     def get_bot_settings_data(self, user_id, token):
-        """Obtiene los ajustes del bot. Si no existen, crea y devuelve los defaults."""
         settings = self.bot_service.get_bot_settings(user_id, token)
-        
         if settings is None:
-            print("--- No se encontraron settings. Creando defaults. ---")
             default_settings = {
-                "activo": "crypto_btc_usd",
-                "riesgo": "medio",
-                "horario": "00:00-23:59",
-                "indicadores": "RSI, MACD",
+                "activo": "crypto_btc_usd", "riesgo": "medio",
+                "horario": "00:00-23:59", "indicadores": "RSI, MACD",
                 "isActive": False
             }
             self.bot_service.save_bot_settings(user_id, default_settings, token)
             return default_settings
-            
         return settings
 
     def save_bot_settings_data(self, user_id, data, token):
-        """Guarda los ajustes del formulario, pero mantiene el estado 'isActive'."""
         current_settings = self.get_bot_settings_data(user_id, token)
+        # Mantenemos el 'isActive' por si acaso
         data['isActive'] = current_settings.get('isActive', False)
-        
         return self.bot_service.save_bot_settings(user_id, data, token)
 
     def get_performance_data(self, user_id, token):
-        """Prepara los datos para la página de rendimientos."""
+        # Esta función ahora SÓLO LEE. El cálculo se hace
+        # en generate_mock_trades
         trade_log = self.bot_service.get_trade_log(user_id, token)
         
         trade_list, labels_grafica, data_grafica = [], [], []
@@ -130,28 +105,19 @@ class MainViewModel:
                 sorted_trades = trade_log.values()
 
             total_trades = len(sorted_trades) 
-            
-            pnl_total_recalculado = 0
-            for trade in sorted_trades:
-                pnl_trade = trade.get('pnl', 0)
-                pnl_total_recalculado += pnl_trade
-                trade['pnl_acumulado'] = round(pnl_total_recalculado, 2)
-                
-                trade_list.append(trade)
-                
-                try:
-                    ts_obj = datetime.datetime.strptime(trade.get('timestamp', ''), "%Y-%m-%d %H:%M:%S")
-                    etiqueta_corta = ts_obj.strftime("%m-%d %H:%M")
-                except ValueError:
-                    etiqueta_corta = trade.get('timestamp', 'N/A').split(' ')[0]
-                
-                labels_grafica.append(etiqueta_corta)
-                data_grafica.append(trade['pnl_acumulado'])
 
-                if pnl_trade > 0:
+            for trade in sorted_trades:
+                trade_list.append(trade)
+                ts = trade.get('timestamp', 'N/A').split(' ')
+                etiqueta_corta = ts[1] if len(ts) == 2 else ts[0] 
+                labels_grafica.append(etiqueta_corta)
+                
+                pnl_acumulado = trade.get('pnl_acumulado', 0)
+                data_grafica.append(pnl_acumulado)
+
+                if trade.get('pnl', 0) > 0:
                     trades_ganadores += 1
-            
-            ganancia_total = pnl_total_recalculado
+                ganancia_total = pnl_acumulado 
 
         win_rate = (trades_ganadores / total_trades) * 100 if total_trades > 0 else 0
 
@@ -169,7 +135,6 @@ class MainViewModel:
         return self.auth_service.reset_password(email)
 
     def get_dashboard_data(self, user_id, token):
-        """Obtiene todos los datos necesarios para el dashboard (Inicio)."""
         try:
             profile = self.get_user_profile(user_id, token)
             settings = self.get_bot_settings_data(user_id, token)
@@ -180,6 +145,7 @@ class MainViewModel:
                 "settings": {"activo": "crypto_btc_usd", "isActive": False}
             }
 
+    # ... (get_api_keys_data, save_api_key, delete_api_key se quedan igual) ...
     def get_api_keys_data(self, user_id, token):
         keys = self.bot_service.get_api_keys(user_id, token)
         return [value for key, value in keys.items()] if keys else []
@@ -191,8 +157,9 @@ class MainViewModel:
     def delete_api_key(self, user_id, exchange_name, token):
         return self.bot_service.delete_api_key(user_id, exchange_name, token)
 
+    # --- ¡LÓGICA DEL BOT MODIFICADA! ---
+    # activate y deactivate solo cambian el 'flag'
     def activate_bot(self, user_id, token):
-        """Lee los ajustes, los pone en 'True' y guarda el objeto completo."""
         try:
             settings = self.get_bot_settings_data(user_id, token)
             settings['isActive'] = True
@@ -202,7 +169,6 @@ class MainViewModel:
             return False
 
     def deactivate_bot(self, user_id, token):
-        """Lee los ajustes, los pone en 'False' y guarda el objeto completo."""
         try:
             settings = self.get_bot_settings_data(user_id, token)
             settings['isActive'] = False
@@ -211,58 +177,46 @@ class MainViewModel:
             print(f"Error al desactivar el bot: {e}")
             return False
             
+    # --- ¡NUESTRO BACKTESTER! ---
     def generate_mock_trades(self, user_id, token):
-        """Llama al servicio para poblar el log de trades."""
+        """
+        Llama al servicio para POBLAR el log de trades.
+        ¡Usa el token del usuario, así que no falla por el 2025!
+        """
         settings = self.get_bot_settings_data(user_id, token)
         asset_seleccionado = settings.get("activo", "crypto_btc_usd")
+        
+        # ¡IMPORTANTE! Ahora llamamos a 'generate_mock_trade_log'
+        # del bot_service, que usa el TOKEN.
         return self.bot_service.generate_mock_trade_log(user_id, token, asset_seleccionado)
     
     def clear_trades(self, user_id, token):
-        """Lmanda a llamar el servicio para borrar el historial de trades."""
+        """Llama al servicio para borrar el historial de trades."""
         return self.bot_service.clear_trade_log(user_id, token)
 
-    # --- ¡FUNCIÓN DE IA CORREGIDA! ---
+    # --- LÓGICA DE IA (Se queda igual) ---
     def get_ai_analysis(self, user_id, token, asset_name):
-        """
-        Llama a la IA de Gemini para obtener un análisis del portafolio.
-        (Versión simplificada sin 'tools' para evitar el error 'FunctionDeclaration')
-        """
         if not self.ai_model:
-            return "Error: El servicio de IA no está configurado en el servidor. Falta la GEMINI_API_KEY."
-
-        # 1. Obtenemos los datos del usuario
-        profile = self.get_user_profile(user_id, token)
-        performance_data = self.get_performance_data(user_id, token)
-        
-        # 2. Resumimos los datos para la IA
-        stats = performance_data.get('stats', {})
-        profile_summary = f"Perfil del usuario: Nivel de experiencia '{profile.get('experience', 'no definido')}' con tolerancia al riesgo '{profile.get('risk', 'no definida')}'."
-        performance_summary = f"Rendimiento actual: Ganancia neta de ${stats.get('ganancia_total', 0)}, con un Win Rate del {stats.get('win_rate', 0)}% sobre {stats.get('total_trades', 0)} operaciones."
-        
-        # 3. Creamos el prompt para Gemini
-        prompt = f"""
-        Actúa como un "Expert Advisor" de trading para un usuario de la app "Wallet Trainer".
-        El usuario está pidiendo un análisis sobre el activo: {asset_name}.
-        
-        Aquí tienes un resumen de su perfil y rendimiento general:
-        - {profile_summary}
-        - {performance_summary}
-        
-        Por favor, genera un análisis corto (2-3 párrafos) para el usuario.
-        El análisis debe incluir:
-        1.  Una breve opinión (alcista/bajista/neutral) sobre el estado actual del mercado para {asset_name}, basándote en tu conocimiento general hasta la fecha.
-        2.  Un consejo o sugerencia para el usuario sobre cómo podría operar este activo, teniendo en cuenta su perfil de riesgo y su rendimiento actual.
-        
-        Usa un tono profesional, alentador y directo. Formatea tu respuesta con saltos de línea y usa **negritas** para las ideas clave.
-        """
-
-        try:
-            # 4. Generamos el contenido (¡SIN 'tools'!)
-            response = self.ai_model.generate_content(prompt)
+            return "Error: El modelo de IA no está configurado."
             
-            return response.text
+        settings = self.get_bot_settings_data(user_id, token)
         
+        prompt = (
+            "Eres un analista de trading experto. "
+            f"Mi perfil de riesgo es '{settings.get('risk', 'medio')}' y mi experiencia es '{settings.get('experience', 'novato')}'. "
+            f"Mi estrategia se basa en los indicadores '{settings.get('indicadores', 'RSI, MACD')}' "
+            f"y opero en el activo '{asset_name}'.\n\n"
+            "Dame un análisis de mercado corto (un 'snippet') y una sugerencia para este activo. "
+            "No uses 'google_search'. Basa tu respuesta en conocimiento general de trading. "
+            "Responde en español."
+        )
+        
+        try:
+            response = self.ai_model.generate_content(prompt)
+            return response.text
         except Exception as e:
-            print(f"Error al llamar a Gemini: {e}")
-            print(traceback.format_exc())
-            return f"Error: No se pudo conectar con el servicio de IA. {e}"
+            print(f"[AI ERROR] Falló la llamada a Gemini: {e}")
+            # El error "google_search" ocurría aquí
+            if "google_search" in str(e):
+                return "Error: El modelo intentó usar una herramienta no permitida (google_search). Reintentando sin la herramienta..."
+            return f"Error al generar análisis: {e}"

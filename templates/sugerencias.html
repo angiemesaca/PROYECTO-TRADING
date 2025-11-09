@@ -1,143 +1,141 @@
 {% extends "base.html" %}
 
-{% block title %}Análisis IA{% endblock %}
+{% block title %}Sugerencias IA{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    
+<div class="container-fluid">
+
     <!-- Título -->
-    <div class="flex items-center mb-8">
-        <span class="text-3xl text-blue-500 mr-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-magic" viewBox="0 0 16 16">
-                <path d="M9.5 2.672a.5.5 0 1 0 1 0V.843a.5.5 0 0 0-1 0v1.829Zm4.5.035A.5.5 0 0 0 13.293 2L12 3.293a.5.5 0 1 0 .707.707L14 3.707a.5.5 0 0 0 .035-.707ZM-2.465 8.5a.5.5 0 0 1 0-.708l1.707-1.707a.5.5 0 0 1 .708 0L.707 7.793a.5.5 0 0 1 0 .707L-.293 9.207a.5.5 0 0 1-.708 0l-1.464-1.464S-2.465 8.5-2.465 8.5ZM1 6a.5.5 0 0 1 .5-.5h1.829a.5.5 0 1 1 0 1H1.5A.5.5 0 0 1 1 6Zm11.828 7.207a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L13.535 9h-1.829a.5.5 0 0 0 0 1h1.293L12 11.293a.5.5 0 0 0 0 .707l.707.707ZM11 13a.5.5 0 0 1 .5.5v1.829a.5.5 0 1 1-1 0V13.5a.5.5 0 0 1 .5-.5ZM7.293 1.293a.5.5 0 0 1 .707 0L9.707 3a.5.5 0 0 1 0 .707L8.707 4.707a.5.5 0 0 1-.707 0L6.293 3a.5.5 0 0 1 0-.707L7.293 1.293Z"/>
-                <path d="M10.193 7.732c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014L10.25 8l.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01l.024.024L10.5 8.5l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014l.024.024.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01L11 9.5l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014l.024.024L11.25 10l.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01l.024.024L11.5 10.5l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014L12 11.25l.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01l.024.024L12.25 12l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014L13 12.75l.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01l.024.024L13.25 13l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014L13.75 13.5c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01L14 14.25l.024.024c.003.004.007.008.01.013l.01.014c.004.005.008.01.013.014l.024.024L14.25 15l.024.024c.005.004.01.008.014.013l.014.01c.004.003.008.007.013.01l.354.354a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L14.707 13h-1.829a.5.5 0 0 0 0 1h1.293L13 15.293a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L13.293 12l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L13.5 11.75l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L13.75 11.5l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L14 11l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L14.25 10.5l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L14.5 10.25l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L14.75 9.75l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L15 9.25l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L15.25 8.75l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L15.5 8.5l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L15.75 8.25l.024-.024c.004-.005.008-.01.013-.014l.01-.014c.003-.004.007-.008.01-.013L15.965 8h-1.829a.5.5 0 1 0 0 1h1.293L14 10.293a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L14.293 7h-1.829a.5.5 0 1 0 0 1h1.293L12.535 9.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L13.293 6h-1.829a.5.5 0 0 0 0 1h1.293L11.535 8.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L12.293 5h-1.829a.5.5 0 0 0 0 1h1.293L10.535 7.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L11.293 4h-1.829a.5.5 0 0 0 0 1h1.293L9.535 6.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0L12.657 5.207a.5.5 0 0 0 0-.707L11.646 3.5a.5.5 0 0 0-.707 0L9.232 5.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L10.193 2.5a.5.5 0 0 0-.707 0L7.779 4.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L8.464 1.5a.5.5 0 0 0-.707 0L6.05 3.207a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L6.768 0L6.06 0a.5.5 0 0 0 0 1h.586l.707.707a.5.5 0 0 0 0 .707L6.343 3.414a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0L8.768 3.818a.5.5 0 0 0 0-.707L8.06 2.414a.5.5 0 0 0 0-.707L7.05 0.707a.5.5 0 0 0-.707 0L5.293 1.757a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L6.06 0H4.5a.5.5 0 0 0 0 1h.586l.707.707a.5.5 0 0 0 0 .707L4.783 3.414a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0L7.207 3.818a.5.5 0 0 0 0-.707L6.5 2.414a.5.5 0 0 0 0-.707L5.49 0.707a.5.5 0 0 0-.707 0L3.076 2.414a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L3.793 0H3.5a.5.5 0 0 0 0 1h.586l.707.707a.5.5 0 0 0 0 .707L3.783 3.414a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0L6.207 3.818a.5.5 0 0 0 0-.707L5.5 2.414a.5.5 0 0 0 0-.707L4.49 0.707a.5.5 0 0 0-.707 0L2.076 2.414a.5.5 0 0 0 0 .707l.707.707a.5.5 0 0 0 .707 0l1.707-1.707a.5.5 0 0 0 0-.708L2.793 0H2a.5.5 0 0 0-.5.5v1.28c0 .264.105.52.293.707l.707.707a.5.5 0 0 0 .708 0l.707-.707a.5.5 0 0 0 .293-.707V.5a.5.5 0 0 0-.5-.5H2Z"/>
-            </svg>
+    <div class="d-flex align-items-center mb-4">
+        <span class="text-info me-3">
+            <i class="bi bi-magic" style="font-size: 2.5rem;"></i>
         </span>
-        <h1 class="text-3xl font-bold text-white">Análisis IA (Gemini)</h1>
+        <div>
+            <h1 class="display-5 fw-bold text-white">Sugerencias con IA</h1>
+            <p class="fs-5 text-white-50">Análisis y contexto de mercado para tus activos seleccionados.</p>
+        </div>
     </div>
-    
-    <div class="flex flex-col md:flex-row gap-8">
+
+    <!-- Contenido -->
+    <div class="row g-4">
         <!-- Columna de Selección -->
-        <div class="w-full md:w-1/3 lg:w-1/4">
-            <div class="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
-                <h2 class="text-xl font-semibold text-white mb-4">Selecciona un Activo</h2>
-                <p class="text-gray-400 mb-6">La IA analizará tu historial de trades y el mercado para este activo.</p>
-                <div class="space-y-3" id="asset-list">
-                    <!-- Los botones se generan dinámicamente -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 h-100 bg-dark text-white">
+                <div class="card-body p-4">
+                    <h2 class="h4 fw-bold text-white mb-4">Seleccionar Activo</h2>
+                    
+                    <div class="list-group" id="asset-list">
+                        <button typea="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="crypto_btc_usd" data-asset-name="Bitcoin (BTC)">
+                            Bitcoin (BTC)
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="crypto_eth_usd" data-asset-name="Ethereum (ETH)">
+                            Ethereum (ETH)
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="crypto_sol_usd" data-asset-name="Solana (SOL)">
+                            Solana (SOL)
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="forex_eur_usd" data-asset-name="EUR/USD">
+                            Forex (EUR/USD)
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="commodity_oro" data-asset-name="Oro (XAU)">
+                            Commodity (Oro)
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="index_spx_500" data-asset-name="S&P 500">
+                            Índice (S&P 500)
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <!-- Columna de Análisis -->
-        <div class="w-full md:w-2/3 lg:w-3/4">
-            <div class="bg-gray-800 rounded-lg shadow-lg p-8 border border-gray-700 min-h-[300px]">
-                <h2 class="text-2xl font-semibold text-white mb-4" id="analysis-title">Selecciona un activo para analizar</h2>
-                
-                <!-- Estado de Carga (Spinner) -->
-                <div id="loading-spinner" class="hidden flex items-center justify-center py-10">
-                    <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span class="text-lg text-gray-400">Analizando tu portafolio...</span>
-                </div>
-                
-                <!-- Estado de Error -->
-                <div id="error-message" class="hidden bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded-lg">
-                    <strong class="font-bold">Error en el Análisis:</strong>
-                    <span class="block" id="error-text">No se pudo conectar con el servicio de IA.</span>
-                </div>
-                
-                <!-- Contenido del Análisis -->
-                <div id="analysis-content" class="prose prose-invert max-w-none text-gray-300">
-                    <!-- El análisis de la IA se insertará aquí -->
+        <!-- Columna de Resultados -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 bg-dark text-white" style="min-height: 400px;">
+                <div class="card-body p-4 p-md-5">
+                    <h2 class="h4 fw-bold text-white mb-4" id="analysis-title">Análisis de IA</h2>
+                    
+                    <!-- Aquí se inyecta el contenido de la IA -->
+                    <div id="analysis-content">
+                        <div class="text-center text-white-50 mt-5">
+                            <i class="bi bi-arrow-left"></i> 
+                            Selecciona un activo de la lista para comenzar el análisis.
+                        </div>
+                    </div>
+                    
+                    <!-- Estado de Carga (Spinner) -->
+                    <div id="loading-spinner" class="text-center text-primary mt-5" style="display: none;">
+                        <div class="spinner-border" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Analizando...</span>
+                        </div>
+                        <p class="mt-3 fw-bold">Analizando, por favor espera...</p>
+                    </div>
+
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block page_scripts %}
+<!-- Script para la lógica de IA -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Lista de activos (podrías pasar esto desde Flask también)
-    const assets = [
-        { id: 'crypto_btc_usd', name: 'Bitcoin (BTC)', type: 'Criptomoneda' },
-        { id: 'crypto_eth_usd', name: 'Ethereum (ETH)', type: 'Criptomoneda' },
-        { id: 'crypto_sol_usd', name: 'Solana (SOL)', type: 'Criptomoneda' },
-        { id: 'forex_eur_usd', name: 'EUR/USD', type: 'Forex' },
-        { id: 'commodity_oro', name: 'Oro (XAU)', type: 'Commodity' },
-        { id: 'index_spx_500', name: 'S&P 500', type: 'Índice' }
-    ];
-
-    const assetListContainer = document.getElementById('asset-list');
+    const assetButtons = document.querySelectorAll('#asset-list .list-group-item');
     const analysisTitle = document.getElementById('analysis-title');
-    const loadingSpinner = document.getElementById('loading-spinner');
-    const errorMessage = document.getElementById('error-message');
-    const errorText = document.getElementById('error-text');
     const analysisContent = document.getElementById('analysis-content');
-
-    // Generar botones de activos
-    assets.forEach(asset => {
-        const button = document.createElement('button');
-        button.className = 'w-full text-left px-4 py-3 rounded-lg bg-gray-700 hover:bg-blue-600 hover:text-white transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500';
-        button.innerHTML = `
-            <span class="font-semibold text-white">${asset.name}</span>
-            <span class="block text-sm text-gray-400">${asset.type}</span>
-        `;
-        button.onclick = () => {
-            fetchAnalysis(asset);
-        };
-        assetListContainer.appendChild(button);
-    });
-
-    async function fetchAnalysis(asset) {
-        // 1. Mostrar estado de carga y ocultar todo lo demás
-        analysisTitle.textContent = `Analizando: ${asset.name}`;
-        loadingSpinner.classList.remove('hidden');
-        errorMessage.classList.add('hidden');
-        analysisContent.innerHTML = '';
-
-        try {
-            // 2. Llamar a nuestro nuevo endpoint en Flask
-            const response = await fetch('/get_ai_suggestion', {
+    const loadingSpinner = document.getElementById('loading-spinner');
+    
+    assetButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Marcar el botón como activo
+            assetButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            const assetId = button.dataset.assetId;
+            const assetName = button.dataset.assetName;
+            
+            // Actualizar UI
+            analysisTitle.innerText = `Analizando ${assetName}...`;
+            analysisContent.style.display = 'none';
+            loadingSpinner.style.display = 'block';
+            
+            // Llamada a la API
+            fetch("{{ url_for('get_ai_suggestion') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ asset_id: asset.id, asset_name: asset.name })
+                body: JSON.stringify({
+                    asset_id: assetId,
+                    asset_name: assetName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSpinner.style.display = 'none';
+                analysisContent.style.display = 'block';
+                
+                if (data.error) {
+                    analysisTitle.innerText = `Error en el análisis de ${assetName}`;
+                    // Usamos 'pre' para respetar los saltos de línea del error
+                    analysisContent.innerHTML = `<pre class="text-danger">${data.error}</pre>`;
+                } else {
+                    analysisTitle.innerText = `Análisis de ${assetName}`;
+                    // Usamos 'pre' para respetar los saltos de línea de la IA
+                    // Reemplazamos **texto** con <strong>texto</strong>
+                    let formattedText = data.suggestion.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    analysisContent.innerHTML = `<pre class="text-white" style="white-space: pre-wrap; word-wrap: break-word;">${formattedText}</pre>`;
+                }
+            })
+            .catch(error => {
+                loadingSpinner.style.display = 'none';
+                analysisContent.style.display = 'block';
+                analysisTitle.innerText = `Error de Conexión`;
+                analysisContent.innerHTML = `<p class="text-danger">No se pudo conectar al servidor. Error: ${error}</p>`;
             });
-
-            if (!response.ok) {
-                throw new Error(`Error de red: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-
-            // 3. Manejar la respuesta
-            if (data.error) {
-                throw new Error(data.error);
-            }
-
-            // Ocultar spinner y mostrar contenido
-            loadingSpinner.classList.add('hidden');
-            // Usamos un truco simple para convertir Markdown básico (como * y \n) a HTML
-            analysisContent.innerHTML = formatMarkdown(data.suggestion);
-
-        } catch (error) {
-            // 4. Manejar errores
-            loadingSpinner.classList.add('hidden');
-            errorText.textContent = error.message;
-            errorMessage.classList.remove('hidden');
-        }
-    }
-
-    function formatMarkdown(text) {
-        // Esta es una función simple, no un parser completo
-        return text
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Negrita
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')         // Cursiva
-            .replace(/\n/g, '<br>');                      // Saltos de línea
-    }
+        });
+    });
 });
 </script>
 {% endblock %}
