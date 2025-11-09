@@ -70,9 +70,9 @@
 
     <!-- 
       AQUÍ ESTÁ LA BARRITA QUE GIRA
-      Ahora funciona porque está inyectada con JS
+      ¡CAMBIO! Quitamos el 'style' del div, para que el widget ponga el color.
     -->
-    <div class="tradingview-widget-container" style="height: 48px; background-color: #1a1a1a;" id="tv-ticker-tape-widget">
+    <div class="tradingview-widget-container" id="tv-ticker-tape-widget">
         <div class="tradingview-widget-container__widget"></div>
     </div>
 
@@ -83,7 +83,6 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <!-- Mapeamos 'danger' a 'danger' y 'success' a 'success' -->
                     <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
                         {{ message }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -92,10 +91,7 @@
             {% endif %}
         {% endwith %}
 
-        <!-- 
-          Este es el "bloque" que las otras páginas van a "llenar"
-          (login.html, dashboard.html, etc.)
-        -->
+        <!-- Bloque de contenido -->
         {% block content %}{% endblock %}
 
     </div>
@@ -124,7 +120,13 @@
               ],
               "showSymbolLogo": true,
               "colorTheme": "dark",
-              "isTransparent": true,
+              
+              // --- ¡CAMBIO IMPORTANTE AQUÍ! ---
+              // Le decimos que NO sea transparente,
+              // para que use su propio fondo 'dark'.
+              "isTransparent": false,
+              // --- FIN DEL CAMBIO ---
+
               "displayMode": "adaptive",
               "locale": "es"
             };
@@ -142,10 +144,7 @@
         });
     </script>
 
-    <!-- 
-      Este es el bloque para los scripts de OTRAS páginas 
-      (como el Chart.js de Rendimiento)
-    -->
+    <!-- Bloque para scripts de otras páginas -->
     {% block page_scripts %}{% endblock %}
 
 </body>
