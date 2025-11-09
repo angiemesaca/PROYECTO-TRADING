@@ -1,17 +1,14 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from viewmodels.main_viewmodel import MainViewModel
-import os 
-# ¡ELIMINADO! Ya no necesitamos APScheduler ni el BotService aquí
-# from apscheduler.schedulers.background import BackgroundScheduler
-# from model.bot_service import BotService 
+import os # Para la clave secreta
+import time # ¡NUEVO! Para añadir el "freno"
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24) 
+app.secret_key = os.urandom(24) # Clave segura
 vm = MainViewModel()
 
-# --- ¡BLOQUE DEL SCHEDULER ELIMINADO! ---
-# El bot en segundo plano fallaba por la fecha de 2025.
-# Lo reemplazamos por un botón de "Backtest".
+# --- ¡ELIMINADO! ---
+# Ya no necesitamos el scheduler, lo quitamos.
 
 @app.route('/')
 def home():
@@ -23,6 +20,7 @@ def home():
 def login():
     email = request.form['email']
     password = request.form['password']
+    
     user = vm.login(email, password) 
     
     if user:
@@ -32,9 +30,7 @@ def login():
         flash("Inicio de sesión exitoso", "success")
         return redirect(url_for('dashboard'))
     else:
-        # El error de "Error en login: 503" que viste
-        # puede ser por la fecha de 2025.
-        flash("Correo o contraseña incorrectos (o error 503 del servidor)", "danger")
+        flash("Correo o contraseña incorrectos", "danger")
         return redirect(url_for('home'))
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -58,29 +54,15 @@ def dashboard():
     user_id = session['user_id']
     token = session['id_token']
     
+    # Esta función obtiene los datos (incluyendo el 'settings' actualizado)
     data = vm.get_dashboard_data(user_id, token)
     
-    selected_asset_id = data['settings'].get('activo', 'crypto_btc_usd')
-    try:
-        asset_name = selected_asset_id.split('_')[1].upper()
-    except:
-        asset_name = selected_asset_id.replace('_', ' ').title()
-    
-    ai_snippet = ""
-    try:
-        # El snippet de IA SÍ usa el token del usuario, que
-        # puede fallar si el login falló, pero lo intentamos.
-        ai_snippet = vm.get_ai_analysis(user_id, token, asset_name)
-    except Exception as e:
-        print(f"Error al obtener AI snippet para dashboard: {e}")
-        ai_snippet = "Error al cargar análisis de IA."
-
     return render_template(
         'dashboard.html', 
         profile=data['profile'], 
-        settings=data['settings'],
-        ai_snippet=ai_snippet
+        settings=data['settings']
     )
+
 
 @app.route('/logout')
 def logout():
@@ -104,6 +86,7 @@ def profile():
             "experience": request.form['experience'],
             "selected_market": request.form['market']
         }
+        
         if vm.update_user_profile(user_id, data, token):
             flash("Perfil actualizado correctamente", "success")
         else:
@@ -120,7 +103,6 @@ def profile():
         markets=markets
     )
 
-# ... (tus otras rutas como /delete_profile se quedan igual) ...
 @app.route('/delete_profile', methods=['POST'])
 def delete_profile():
     if 'user_id' not in session:
@@ -134,7 +116,6 @@ def delete_profile():
     else:
         flash("Error al eliminar tu perfil.", "danger")
         return redirect(url_for('profile'))
-
 
 @app.route('/ajustes', methods=['GET', 'POST'])
 def bot_settings():
@@ -150,37 +131,52 @@ def bot_settings():
             "indicadores": request.form['indicadores'],
             "horario": request.form['horario']
         }
+        
         update_success = vm.save_bot_settings_data(user_id, data, token)
+        
         if update_success:
             flash("Ajustes del bot actualizados correctamente", "success")
         else:
             flash("Error al actualizar los ajustes", "danger")
+            
         return redirect(url_for('bot_settings'))
 
     settings = vm.get_bot_settings_data(user_id, token)
     return render_template('ajustes.html', settings=settings)
 
-
-# --- RUTAS DEL BOT MODIFICADAS ---
-# Ya no son un "interruptor", solo están ahí
-# por si la lógica los necesita, pero no hacen nada.
-
 @app.route('/activate_bot', methods=['POST'])
 def activate_bot():
     if 'user_id' not in session:
         return redirect(url_for('home'))
-    # ¡MODIFICADO! Esta ruta ya no hace nada en vivo.
-    flash("Bot 'Activado'. Ve a Rendimientos para ejecutar una simulación.", "info")
+    user_id = session['user_id']
+    token = session['id_token']
+    
+    if vm.activate_bot(user_id, token):
+        flash("Bot Activado.", "success")
+        # --- ¡AQUÍ ESTÁ EL FRENO! ---
+        # Espera 1 segundo para darle tiempo a Firebase a actualizarse
+        time.sleep(1)
+    else:
+        flash("Error al activar el bot.", "danger")
+        
     return redirect(url_for('dashboard'))
 
 @app.route('/deactivate_bot', methods=['POST'])
 def deactivate_bot():
     if 'user_id' not in session:
         return redirect(url_for('home'))
-    # ¡MODIFICADO! Esta ruta ya no hace nada.
-    flash("Bot 'Desactivado'.", "info")
+    user_id = session['user_id']
+    token = session['id_token']
+    
+    if vm.deactivate_bot(user_id, token):
+        flash("Bot Desactivado.", "info")
+        # --- ¡AQUÍ ESTÁ EL FRENO! ---
+        # Espera 1 segundo para darle tiempo a Firebase a actualizarse
+        time.sleep(1)
+    else:
+        flash("Error al desactivar el bot.", "danger")
+        
     return redirect(url_for('dashboard'))
-
 
 @app.route('/performance')
 def performance():
@@ -189,40 +185,35 @@ def performance():
     
     user_id = session['user_id']
     token = session['id_token']
-    # ¡MODIFICADO! Esta función ahora solo LEE los datos
+    
     data = vm.get_performance_data(user_id, token)
     
     return render_template(
         'rendimientos.html', 
-        stats=data.get('stats', {}),
-        trades=data.get('all_trades', []),
-        labels=data.get('grafica_labels', []),
-        pnl_data=data.get('grafica_data', [])
+        stats=data['stats'],
+        trades=data['all_trades'],
+        labels=data['grafica_labels'],
+        pnl_data=data['grafica_data']
     )
 
-# --- ¡NUEVA RUTA DE BACKTEST! ---
-# Esta ruta REEMPLAZA al scheduler roto.
 @app.route('/run_backtest', methods=['POST'])
 def run_backtest():
+    """Ejecuta el backtest (simulación)"""
     if 'user_id' not in session:
         return redirect(url_for('home'))
     
     user_id = session['user_id']
     token = session['id_token']
     
-    # ¡Aquí está la magia!
-    # Llamamos a la función que genera los 30 trades falsos.
-    # Esta usa el 'token' del usuario, no el 'admin_db' roto.
     if vm.generate_mock_trades(user_id, token):
-        flash("Simulación de backtest completada.", "success")
+        flash("Simulación de backtest generada con éxito.", "success")
     else:
-        flash("Error al ejecutar la simulación.", "danger")
-        
+        flash("Error al generar la simulación.", "danger")
     return redirect(url_for('performance'))
-
-# --- ¡NUEVA RUTA DE LIMPIEZA! ---
+    
 @app.route('/clear_history', methods=['POST'])
 def clear_history():
+    """Borra el historial de trades (backtest)"""
     if 'user_id' not in session:
         return redirect(url_for('home'))
     
@@ -230,15 +221,10 @@ def clear_history():
     token = session['id_token']
     
     if vm.clear_trades(user_id, token):
-        flash("Historial de trades limpiado.", "info")
+        flash("Historial de simulación borrado.", "info")
     else:
-        flash("Error al limpiar el historial.", "danger")
-        
+        flash("Error al borrar el historial.", "danger")
     return redirect(url_for('performance'))
-
-
-# ... (El resto de tus rutas: /change_password, /change_email, /forgot_password) ...
-# ... (Se quedan igual) ...
 
 @app.route('/change_password', methods=['POST'])
 def change_password():
@@ -249,6 +235,7 @@ def change_password():
         return redirect(url_for('logout'))
     else:
         flash("Error al cambiar la contraseña.", "danger")
+        # ¡Este es el error que arreglamos antes!
         return redirect(url_for('profile'))
 
 @app.route('/change_email', methods=['POST'])
@@ -261,7 +248,7 @@ def change_email():
     else:
         flash("Error al cambiar el email.", "danger")
         return redirect(url_for('profile'))
-    
+        
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -273,42 +260,41 @@ def forgot_password():
         return redirect(url_for('home'))
     return render_template('forgot_password.html')
 
-
 @app.route('/sugerencias')
 def sugerencias():
     if 'user_id' not in session:
         return redirect(url_for('home'))
-    return render_template('sugerencias.html')
+    
+    # Pasamos los settings para que la página sepa el activo y riesgo
+    user_id = session['user_id']
+    token = session['id_token']
+    settings = vm.get_bot_settings_data(user_id, token)
+    
+    return render_template('sugerencias.html', settings=settings)
 
-# ... (El resto de tus rutas: /get_ai_suggestion, /api_keys, /delete_api_key) ...
-# ... (Se quedan igual) ...
 @app.route('/get_ai_suggestion', methods=['POST'])
 def get_ai_suggestion():
+    """Ruta API para que el Javascript de 'sugerencias.html' llame."""
     if 'user_id' not in session:
         return jsonify({"error": "No autenticado"}), 401
-        
+    
     user_id = session['user_id']
     token = session['id_token']
     
-    data = request.json
-    asset_id = data.get('asset_id')
-    asset_name = data.get('asset_name')
+    # Obtenemos el activo del JSON que nos envía el Javascript
+    data = request.get_json()
+    asset_name = data.get('asset')
     
-    if not asset_id:
-        return jsonify({"error": "No se proporcionó activo"}), 400
-        
-    suggestion_text = ""
-    try:
-        suggestion_text = vm.get_ai_analysis(user_id, token, asset_name)
-    except Exception as e:
-        print(f"Error en la ruta /get_ai_suggestion: {e}")
-        suggestion_text = f"Error: {e}"
-
-    if "Error:" in suggestion_text:
-        return jsonify({"error": suggestion_text})
+    if not asset_name:
+        return jsonify({"error": "Activo no especificado"}), 400
     
-    return jsonify({"suggestion": suggestion_text})
-
+    # Llamamos a nuestra función de IA simulada
+    analysis = vm.get_ai_analysis(user_id, token, asset_name)
+    
+    if "Error" in analysis:
+        return jsonify({"error": analysis}), 500
+    
+    return jsonify({"analysis": analysis})
 
 @app.route('/api_keys', methods=['GET', 'POST'])
 def api_keys():
@@ -348,5 +334,4 @@ def delete_api_key():
 
 if __name__ == "__main__":
     print("Iniciando servidor...")
-    # 'use_reloader=False' ya no es necesario, ¡el scheduler se fue!
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
