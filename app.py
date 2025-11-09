@@ -21,6 +21,7 @@ def bot_task():
     print(f"--- [SCHEDULER] Ciclo del bot finalizado. ---")
 
 scheduler = BackgroundScheduler(daemon=True)
+# Frecuencia del bot (ej: cada 30 segundos para pruebas)
 scheduler.add_job(bot_task, 'interval', seconds=30) 
 
 try:
@@ -81,16 +82,19 @@ def dashboard():
     # 2. Obtenemos el activo seleccionado para la IA
     selected_asset_id = data['settings'].get('activo', 'crypto_btc_usd')
     # Formateamos el nombre (ej: 'crypto_btc_usd' -> 'Bitcoin (BTC)')
-    # (Esto es un truco simple, deberíamos tener un mapa, pero funciona por ahora)
     try:
         asset_name = selected_asset_id.split('_')[1].upper()
     except:
         asset_name = selected_asset_id.replace('_', ' ').title()
     
     # 3. Obtenemos el snippet de la IA
-    # (Le pasamos un token falso si es necesario, ya que el VM de IA no lo usa)
-    ai_snippet = vm.get_ai_analysis(user_id, token, asset_name)
-    
+    ai_snippet = ""
+    try:
+        ai_snippet = vm.get_ai_analysis(user_id, token, asset_name)
+    except Exception as e:
+        print(f"Error al obtener AI snippet para dashboard: {e}")
+        ai_snippet = "Error al cargar análisis de IA."
+
     return render_template(
         'dashboard.html', 
         profile=data['profile'], 
@@ -228,7 +232,8 @@ def change_password():
         return redirect(url_for('logout'))
     else:
         flash("Error al cambiar la contraseña.", "danger")
-        return redirect(url_for'profile')
+        # --- ¡CORREGIDO DEFINITIVAMENTE! ---
+        return redirect(url_for('profile'))
 
 @app.route('/change_email', methods=['POST'])
 def change_email():
@@ -275,8 +280,13 @@ def get_ai_suggestion():
         return jsonify({"error": "No se proporcionó activo"}), 400
         
     # Llamamos al ViewModel para obtener la sugerencia
-    suggestion_text = vm.get_ai_analysis(user_id, token, asset_name)
-    
+    suggestion_text = ""
+    try:
+        suggestion_text = vm.get_ai_analysis(user_id, token, asset_name)
+    except Exception as e:
+        print(f"Error en la ruta /get_ai_suggestion: {e}")
+        suggestion_text = f"Error: {e}"
+
     if "Error:" in suggestion_text:
         return jsonify({"error": suggestion_text})
     
