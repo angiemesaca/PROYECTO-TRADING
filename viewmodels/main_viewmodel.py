@@ -9,8 +9,6 @@ import google.generativeai as genai
 import os # Para la API Key
 
 # --- ¡NUEVO! CONFIGURACIÓN DE IA ---
-# DEBES añadir 'GEMINI_API_KEY' a tus variables de entorno en Render
-# (Igual que hiciste con el Secret File, pero esta vez en "Environment Variables")
 try:
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
     if GEMINI_API_KEY:
@@ -34,7 +32,6 @@ class MainViewModel:
         except Exception:
             self.ai_model = None
 
-    # ... (El resto de tus funciones: login, register, get_user_profile, etc. se quedan IGUAL) ...
     # ... (pega aquí todas tus funciones desde login() hasta clear_trades()) ...
 
     def login(self, email, password):
@@ -134,17 +131,14 @@ class MainViewModel:
 
             total_trades = len(sorted_trades) 
             
-            # ¡Corregido! Reiniciamos pnl_total para recalcularlo
             pnl_total_recalculado = 0
             for trade in sorted_trades:
-                # Recalculamos el PNL acumulado por si el bot se reinició
                 pnl_trade = trade.get('pnl', 0)
                 pnl_total_recalculado += pnl_trade
                 trade['pnl_acumulado'] = round(pnl_total_recalculado, 2)
                 
                 trade_list.append(trade)
                 
-                # Usamos una etiqueta de fecha más corta para la gráfica
                 try:
                     ts_obj = datetime.datetime.strptime(trade.get('timestamp', ''), "%Y-%m-%d %H:%M:%S")
                     etiqueta_corta = ts_obj.strftime("%m-%d %H:%M")
@@ -227,10 +221,11 @@ class MainViewModel:
         """Lmanda a llamar el servicio para borrar el historial de trades."""
         return self.bot_service.clear_trade_log(user_id, token)
 
-    # --- ¡NUEVA FUNCIÓN DE IA! ---
+    # --- ¡FUNCIÓN DE IA CORREGIDA! ---
     def get_ai_analysis(self, user_id, token, asset_name):
         """
         Llama a la IA de Gemini para obtener un análisis del portafolio.
+        (Versión simplificada sin 'tools' para evitar el error 'FunctionDeclaration')
         """
         if not self.ai_model:
             return "Error: El servicio de IA no está configurado en el servidor. Falta la GEMINI_API_KEY."
@@ -255,18 +250,15 @@ class MainViewModel:
         
         Por favor, genera un análisis corto (2-3 párrafos) para el usuario.
         El análisis debe incluir:
-        1.  Una breve opinión (alcista/bajista/neutral) sobre el estado actual del mercado para {asset_name}, basándote en información pública reciente. (Usa la herramienta de búsqueda si es necesario).
+        1.  Una breve opinión (alcista/bajista/neutral) sobre el estado actual del mercado para {asset_name}, basándote en tu conocimiento general hasta la fecha.
         2.  Un consejo o sugerencia para el usuario sobre cómo podría operar este activo, teniendo en cuenta su perfil de riesgo y su rendimiento actual.
         
         Usa un tono profesional, alentador y directo. Formatea tu respuesta con saltos de línea y usa **negritas** para las ideas clave.
         """
 
         try:
-            # 4. Habilitamos Google Search en la herramienta
-            tools = [{"google_search": {}}]
-            
-            # 5. Generamos el contenido
-            response = self.ai_model.generate_content(prompt, tools=tools)
+            # 4. Generamos el contenido (¡SIN 'tools'!)
+            response = self.ai_model.generate_content(prompt)
             
             return response.text
         
