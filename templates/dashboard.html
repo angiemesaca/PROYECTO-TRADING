@@ -6,13 +6,11 @@
 <div class="container mx-auto px-4 py-8">
 
     <!-- Mensaje de Bienvenida -->
-    <div class="mb-8 p-6 bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+    <!-- (Los estilos de Tailwind 'text-3xl', 'font-bold' etc. AHORA SÍ FUNCIONARÁN) -->
+    <div class="mb-8">
         <h1 class="text-3xl font-bold text-white">Bienvenido, {{ profile.username }}</h1>
         <p class="text-lg text-gray-400">Este es tu panel de control. ¿Listo para operar?</p>
     </div>
-
-    <!-- Alerta de Flash (si existe) -->
-    <!-- (Tu base.html ya debería manejar las alertas flash, pero si no, este es un buen lugar) -->
 
     <!-- Contenido Principal del Dashboard -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -63,14 +61,17 @@
             
             {% if ai_snippet and 'Error:' not in ai_snippet %}
                 <p class="text-gray-400 mb-4">Sugerencia rápida para tu activo seleccionado ({{ settings.activo|replace('_', ' ')|title }}):</p>
-                <div class="prose prose-invert text-gray-300">
-                    <!-- Mostramos el snippet de la IA -->
-                    <p>{{ ai_snippet|truncate(250, True, '...')|replace('\n', '<br>')|safe }}</p>
+                <!--
+                'prose' es una clase de Tailwind que le da formato de texto
+                automáticamente a la respuesta de la IA (márgenes, saltos de línea, etc.)
+                -->
+                <div class="prose prose-sm prose-invert text-gray-300">
+                    <p>{{ ai_snippet|truncate(250, True, '...')|safe }}</p>
                 </div>
                 <a href="{{ url_for('sugerencias') }}" class="inline-block mt-4 text-blue-400 hover:text-blue-300 font-medium">
                     Ver análisis completo &rarr;
                 </a>
-            {% elif 'Error:' in ai_snippet %}
+            {% elif ai_snippet and 'Error:' in ai_snippet %}
                  <p class="text-red-400">{{ ai_snippet }}</p>
             {% else %}
                 <p class="text-gray-400">Activa el bot y ve a "Sugerencias IA" para obtener tu primer análisis.</p>
@@ -83,7 +84,6 @@
             <p class="text-gray-400">Gráfica del activo seleccionado: 
                 <span class="font-bold text-blue-400">{{ settings.activo|replace('_', ' ')|title }}</span>
             </p>
-            <!-- (Aquí iría tu gráfica de TradingView o similar) -->
             <div class="mt-4 text-center text-gray-500">
                 (Gráfica de mercado en vivo próximamente)
             </div>
