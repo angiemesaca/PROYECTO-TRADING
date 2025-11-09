@@ -3,7 +3,11 @@ from model.db_service import DBService
 from model.bot_service import BotService
 import datetime
 import os
-import google.generativeai as genai
+# ¡CAMBIOS! Ya no usamos 'google.generativeai'
+# import google.generativeai as genai
+# ¡NUEVOS! Usamos 'requests' y 'json'
+import requests
+import json
 
 class MainViewModel:
     def __init__(self):
@@ -12,24 +16,13 @@ class MainViewModel:
         self.bot_service = BotService()
         self.markets = self.db_service.get_markets()
         
-        try:
-            gemini_api_key = os.environ.get('GEMINI_API_KEY')
-            if gemini_api_key:
-                genai.configure(api_key=gemini_api_key)
-                
-                # --- ¡CAMBIO IMPORTANTE AQUÍ! ---
-                # Cambiamos 'gemini-1.5-flash' por 'gemini-pro'
-                # 'gemini-pro' es un modelo más estándar y siempre disponible.
-                self.ai_model = genai.GenerativeModel('gemini-pro')
-                # --- FIN DEL CAMBIO ---
-                
-            else:
-                self.ai_model = None
-                print("[AI ERROR] GEMINI_API_KEY no encontrada.")
-        except Exception as e:
-            self.ai_model = None
-            print(f"[AI ERROR] No se pudo configurar Gemini: {e}")
+        # ¡CAMBIO! Solo guardamos la clave, no inicializamos el modelo
+        self.gemini_api_key = os.environ.get('GEMINI_API_KEY')
+        if not self.gemini_api_key:
+             print("[AI ERROR] GEMINI_API_KEY no encontrada.")
 
+    # ... (El resto de tus funciones como login, register, etc. se quedan igual) ...
+    
     def login(self, email, password):
         return self.auth_service.login(email, password)
 
@@ -183,9 +176,10 @@ class MainViewModel:
     def clear_trades(self, user_id, token):
         return self.bot_service.clear_trade_log(user_id, token)
 
+    # --- ¡FUNCIÓN DE IA REESCRITA! ---
     def get_ai_analysis(self, user_id, token, asset_name):
-        if not self.ai_model:
-            return "Error: El modelo de IA no está configurado."
+        if not self.gemini_api_key:
+            return "Error: El modelo de IA no está configurado (GEMINI_API_KEY no encontrada)."
             
         settings = self.get_bot_settings_data(user_id, token)
         
@@ -195,15 +189,41 @@ class MainViewModel:
             f"Mi estrategia se basa en los indicadores '{settings.get('indicadores', 'RSI, MACD')}' "
             f"y opero en el activo '{asset_name}'.\n\n"
             "Dame un análisis de mercado corto (un 'snippet') y una sugerencia para este activo. "
-            "No uses 'google_search'. Basa tu respuesta en conocimiento general de trading. "
-            "Responde en español."
+            "Basa tu respuesta en conocimiento general de trading. "
+            "Responde en español y NO uses markdown."
         )
         
+        # Usamos la API REST de gemini-pro (v1beta)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={self.gemini_api_key}"
+        
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
+        }
+        
         try:
-            response = self.ai_model.generate_content(prompt)
-            return response.text
+            # ¡La llamada de REPSUESTA!
+            response = requests.post(url, headers=headers, data=json.dumps(data), timeout=20)
+            
+            # Si Google nos da un error (como 404, 500, etc.)
+            if response.status_code != 200:
+                print(f"[AI ERROR] La API REST de Gemini falló con status {response.status_code}:")
+                print(response.text)
+                return f"Error: La API de IA devolvió un error {response.status_code}. (Posiblemente el Error 2025 de nuevo)"
+
+            # Si funciona, extraemos el texto
+            result = response.json()
+            text = result['candidates'][0]['content']['parts'][0]['text']
+            return text
+            
+        except requests.exceptions.RequestException as e:
+            print(f"[AI ERROR] Falló la llamada a Gemini (Requests): {e}")
+            return f"Error de conexión al generar análisis: {e}"
         except Exception as e:
-            print(f"[AI ERROR] Falló la llamada a Gemini: {e}")
-            if "google_search" in str(e):
-                return "Error: El modelo intentó usar una herramienta no permitida (google_search). Reintentando sin la herramienta..."
-            return f"Error al generar análisis: {e}"
+            print(f"[AI ERROR] Falló al procesar la respuesta de Gemini: {e}")
+            return f"Error al procesar respuesta de IA: {e}"
