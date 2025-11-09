@@ -228,7 +228,7 @@ def change_password():
         return redirect(url_for('logout'))
     else:
         flash("Error al cambiar la contraseña.", "danger")
-        return redirect(url_D'profile'))
+        return redirect(url_for'profile')
 
 @app.route('/change_email', methods=['POST'])
 def change_email():
