@@ -3,11 +3,13 @@ from model.db_service import DBService
 from model.bot_service import BotService
 import datetime
 import os
-# ¡CAMBIOS! Ya no usamos 'google.generativeai'
+import time # ¡NUEVO! Para simular el tiempo de carga
+
+# --- ¡ELIMINADOS! ---
+# Ya no necesitamos llamar a Google, así que quitamos sus librerías
+# import requests
+# import json
 # import google.generativeai as genai
-# ¡NUEVOS! Usamos 'requests' y 'json'
-import requests
-import json
 
 class MainViewModel:
     def __init__(self):
@@ -16,12 +18,13 @@ class MainViewModel:
         self.bot_service = BotService()
         self.markets = self.db_service.get_markets()
         
-        # ¡CAMBIO! Solo guardamos la clave, no inicializamos el modelo
-        self.gemini_api_key = os.environ.get('GEMINI_API_KEY')
-        if not self.gemini_api_key:
-             print("[AI ERROR] GEMINI_API_KEY no encontrada.")
+        # --- ¡ELIMINADO! ---
+        # Ya no necesitamos configurar Gemini
+        # self.gemini_api_key = os.environ.get('GEMINI_API_KEY')
+        # if not self.gemini_api_key:
+        #      print("[AI ERROR] GEMINI_API_KEY no encontrada.")
 
-    # ... (El resto de tus funciones como login, register, etc. se quedan igual) ...
+    # ... (login, register, y todas las demás funciones se quedan igual) ...
     
     def login(self, email, password):
         return self.auth_service.login(email, password)
@@ -176,54 +179,54 @@ class MainViewModel:
     def clear_trades(self, user_id, token):
         return self.bot_service.clear_trade_log(user_id, token)
 
-    # --- ¡FUNCIÓN DE IA REESCRITA! ---
+    # --- ¡FUNCIÓN DE IA SIMULADA! ---
     def get_ai_analysis(self, user_id, token, asset_name):
-        if not self.gemini_api_key:
-            return "Error: El modelo de IA no está configurado (GEMINI_API_KEY no encontrada)."
-            
-        settings = self.get_bot_settings_data(user_id, token)
-        
-        prompt = (
-            "Eres un analista de trading experto. "
-            f"Mi perfil de riesgo es '{settings.get('risk', 'medio')}' y mi experiencia es '{settings.get('experience', 'novato')}'. "
-            f"Mi estrategia se basa en los indicadores '{settings.get('indicadores', 'RSI, MACD')}' "
-            f"y opero en el activo '{asset_name}'.\n\n"
-            "Dame un análisis de mercado corto (un 'snippet') y una sugerencia para este activo. "
-            "Basa tu respuesta en conocimiento general de trading. "
-            "Responde en español y NO uses markdown."
-        )
-        
-        # Usamos la API REST de gemini-pro (v1beta)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={self.gemini_api_key}"
-        
-        headers = {
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }]
-        }
+        # Esta función ya no llama a Google. Es 100% local.
+        # No puede fallar por el 2025.
         
         try:
-            # ¡La llamada de REPSUESTA!
-            response = requests.post(url, headers=headers, data=json.dumps(data), timeout=20)
+            settings = self.get_bot_settings_data(user_id, token)
             
-            # Si Google nos da un error (como 404, 500, etc.)
-            if response.status_code != 200:
-                print(f"[AI ERROR] La API REST de Gemini falló con status {response.status_code}:")
-                print(response.text)
-                return f"Error: La API de IA devolvió un error {response.status_code}. (Posiblemente el Error 2025 de nuevo)"
+            # ¡SIMULAMOS LA CARGA!
+            time.sleep(2) 
+            
+            risk = settings.get('risk', 'medio')
+            
+            # Respuestas "enlatadas"
+            canned_responses = {
+                "Bitcoin": (
+                    "**Análisis de Bitcoin (BTC):**\n"
+                    "Bitcoin muestra una fuerte consolidación por encima de su media móvil de 50 días. El volumen ha disminuido, lo que sugiere una posible 'calma antes de la tormenta'. Los indicadores (RSI, MACD) están en territorio neutral.\n\n"
+                    f"**Sugerencia (Perfil {risk}):**\n"
+                    f"Dado tu perfil **{risk}**, la estrategia actual con {settings.get('indicadores')} es apropiada. Considera buscar una ruptura por encima de la resistencia clave. La paciencia es vital en este momento; evita operar en el 'ruido' del mercado."
+                ),
+                "Ethereum": (
+                    "**Análisis de Ethereum (ETH):**\n"
+                    "Ethereum está mostrando una fortaleza relativa mayor que Bitcoin, posiblemente debido a actualizaciones de la red. El par ETH/BTC está en una tendencia alcista a corto plazo.\n\n"
+                    f"**Sugerencia (Perfil {risk}):**\n"
+                    f"Tu estrategia basada en {settings.get('indicadores')} es sólida. Con un perfil **{risk}**, podrías considerar tomar ganancias parciales si el RSI entra en sobrecompra, o esperar una confirmación de soporte para añadir a la posición."
+                ),
+                "Solana": (
+                    "**Análisis de Solana (SOL):**\n"
+                    "Solana es un activo de alta volatilidad (Beta alta). Su rendimiento reciente ha sido explosivo, pero el indicador RSI muestra signos de sobrecompra extrema, lo que advierte de una posible corrección a corto plazo.\n\n"
+                    f"**Sugerencia (Perfil {risk}):**\n"
+                    f"Este activo es volátil. Para un perfil **{risk}**, es crucial usar un Stop Loss estricto. No persigas el precio ('FOMO'). Espera un retroceso a una zona de soporte (como una EMA) antes de considerar una entrada basada en tus indicadores."
+                )
+            }
+            
+            # Buscar la respuesta por el nombre
+            for key, response_text in canned_responses.items():
+                if key.lower() in asset_name.lower():
+                    return response_text
+            
+            # Respuesta por defecto si no lo encontramos
+            return (
+                f"**Análisis para {asset_name}:**\n"
+                f"Este activo ({asset_name}) es un mercado volátil. La estrategia debe ser aplicada con cautela.\n\n"
+                f"**Sugerencia (Perfil {risk}):**\n"
+                f"Asegúrate de que tus indicadores ({settings.get('indicadores')}) den señales claras antes de entrar. Gestiona tu riesgo."
+            )
 
-            # Si funciona, extraemos el texto
-            result = response.json()
-            text = result['candidates'][0]['content']['parts'][0]['text']
-            return text
-            
-        except requests.exceptions.RequestException as e:
-            print(f"[AI ERROR] Falló la llamada a Gemini (Requests): {e}")
-            return f"Error de conexión al generar análisis: {e}"
         except Exception as e:
-            print(f"[AI ERROR] Falló al procesar la respuesta de Gemini: {e}")
-            return f"Error al procesar respuesta de IA: {e}"
+            print(f"[AI ERROR SIMULADO] Falló la lógica local: {e}")
+            return f"Error al generar análisis simulado: {e}"
