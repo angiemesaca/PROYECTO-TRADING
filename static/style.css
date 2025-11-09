@@ -1,227 +1,130 @@
-/* Usamos CSS Variables con tu paleta de colores */
-:root {
-    --dark-charcoal: #2f3b4c;
-    --dark-green: #2a5e3a;
-    --bright-green: #4bc076;
-    --medium-gray: #7a828a;
-    --light-gray: #f4f4f4;
-    --white: #ffffff;
-}
+/* static/style.css (CORREGIDO - MODO OSCURO PRO) */
 
-/* Estilos generales */
+/*
+   Forzamos el fondo principal a ser muy oscuro,
+   para que las 'cards' de Bootstrap (que son un poco más claras) resalten.
+*/
 body {
-    font-family: Arial, sans-serif;
-    background-color: var(--light-gray);
-    color: var(--dark-charcoal);
-    margin: 0;
-    padding: 0;
+    background-color: #0d1117 !important; /* Negro de GitHub */
 }
 
-.container {
-    max-width: 900px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: var(--white);
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+/* Estilo para los iconos dentro de los formularios */
+.input-group-text {
+    width: 42px;
+    justify-content: center;
 }
 
-/* Barra de Navegación */
-.navbar {
-    background-color: var(--dark-charcoal);
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: var(--white);
-}
-.nav-brand {
-    font-size: 1.5em;
-    font-weight: bold;
-    color: var(--bright-green);
-    text-decoration: none;
-}
-.nav-links a {
-    color: var(--light-gray);
-    text-decoration: none;
-    margin-left: 20px;
-}
-.nav-links a:hover {
-    color: var(--bright-green);
+/* --- ESTILOS DEL DASHBOARD --- */
+
+.card-icon {
+    font-size: 3rem;
+    opacity: 0.1;
+    position: absolute;
+    right: 20px;
+    top: 25px;
 }
 
-/* Formularios (Login y Registro) */
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-form input[type="email"],
-form input[type="password"],
-form input[type="text"] {
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1em;
-}
-form button {
-    background-color: var(--dark-green);
-    color: var(--white);
-    padding: 12px;
-    border: none;
-    border-radius: 5px;
-    font-size: 1.1em;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-form button:hover {
-    background-color: var(--bright-green);
-    color: var(--dark-charcoal);
-}
-form p {
-    text-align: center;
-}
-
-/* Alertas (Mensajes Flash) */
-.alert {
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 5px;
-    font-weight: bold;
-}
-.alert-success {
-    background-color: #d4edda;
-    color: #155724;
-}
-.alert-danger {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-.alert-info {
-    background-color: #cce5ff;
-    color: #004085;
-}
-
-/* Estilos del Dashboard (puedes agregar más) */
-#grafico {
-    max-width: 100%;
-}
-
-.delete-zone .delete-button {
-    background-color: #dc3545; /* Rojo peligro */
-    color: white;
-}
-.delete-zone .delete-button:hover {
-    background-color: #c82333; /* Rojo más oscuro */
-    color: white;
-}
-.bot-control-panel {
-    text-align: center;
-    padding: 20px;
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-}
-
-.bot-status p {
-    font-size: 1.2em;
-}
-
-.status-active {
-    color: var(--dark-green);
-    font-weight: bold;
-    padding: 5px 10px;
-    background-color: #e0f8e9;
-    border-radius: 5px;
-}
-
-.status-inactive {
-    color: var(--medium-gray);
-    font-weight: bold;
-    padding: 5px 10px;
-    background-color: #eee;
-    border-radius: 5px;
-}
-
-.bot-actions {
-    margin: 20px 0;
-}
-
-.bot-actions button {
-    font-size: 1.2em;
-    padding: 15px 30px;
-    border: none;
-    border-radius: 5px;
-    color: white;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-
-.bot-actions button:hover {
-    transform: scale(1.05);
-}
-
-.button-activate {
-    background-color: var(--dark-green);
-}
-
-.button-deactivate {
-    background-color: #dc3545; /* Rojo */
-}
-
-.bot-links {
-    margin-top: 20px;
-}
-
-.button-link {
+/* Punto de estado */
+.status-dot {
     display: inline-block;
-    background-color: var(--dark-charcoal);
-    color: var(--white);
-    padding: 10px 20px;
-    text-decoration: none;
-    border-radius: 5px;
-    margin: 0 10px;
-    transition: background-color 0.2s ease;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse 2s infinite;
 }
 
-.button-link:hover {
-    background-color: var(--bright-green);
-    color: var(--dark-charcoal);
+.status-dot.active {
+    background-color: #28a745; /* Verde */
 }
 
-.trade-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    font-size: 0.9em;
-}
-.trade-table th,
-.trade-table td {
-    border: 1px solid #ddd;
-    padding: 10px;
-    text-align: left;
-}
-.trade-table th {
-    background-color: var(--dark-charcoal);
-    color: var(--light-gray);
-}
-.trade-table tr:nth-child(even) {
-    background-color: #f9f9f9;
+.status-dot.inactive {
+    background-color: #dc3545; /* Rojo */
+    animation: none;
 }
 
-/* Colores para la tabla */
-.tipo-buy {
-    color: var(--dark-green);
-    font-weight: bold;
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
 }
-.tipo-sell {
-    color: #dc3545; /* Rojo */
-    font-weight: bold;
+
+/* --- ESTILOS DE ESTADÍSTICAS (Rendimiento) --- */
+
+/* Las .stat-card son personalizadas, así que SÍ 
+   tenemos que darles un fondo oscuro
+*/
+.stat-card {
+    border-left: 5px solid var(--bs-primary);
+    padding: 1.25rem;
+    background-color: #212529; /* Color de card oscuro estándar */
+    position: relative;
 }
-.pnl-pos {
-    color: var(--dark-green);
-    font-weight: bold;
+
+.stat-card.positive {
+    border-left-color: var(--bs-success);
 }
-.pnl-neg {
-    color: #dc3545; /* Rojo */
+.stat-card.negative {
+    border-left-color: var(--bs-danger);
+}
+
+.stat-card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #adb5bd; /* texto gris claro */
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #f8f9fa; /* texto blanco */
+}
+
+.stat-card-icon {
+    font-size: 3rem;
+    opacity: 0.05;
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.stat-card {
+    border-left: 5px solid var(--bs-primary);
+    padding: 1.25rem;
+    background-color: #212529; /* Color de card oscuro estándar */
+    position: relative;
+    border-radius: .375rem; /* Bootstrap 5 usa .375rem */
+}
+
+.stat-card.positive {
+    border-left-color: var(--bs-success);
+}
+.stat-card.negative {
+    border-left-color: var(--bs-danger);
+}
+
+.stat-card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #adb5bd; /* texto gris claro */
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #f8f9fa; /* texto blanco */
+}
+
+.stat-card-icon {
+    font-size: 3rem;
+    opacity: 0.05;
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
 }

@@ -1,45 +1,191 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="container mt-4">
 
-<h2 class="text-center mb-4">
-    Bienvenido, {{ profile.username | capitalize }}
-</h2>
+    <!-- Fila de Bienvenida -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-light">Bienvenido, <span class="fw-bold">{{ profile.username | capitalize }}</span></h2>
+            <p class="text-muted">Este es tu panel de control. ¿Listo para operar?</p>
+        </div>
+    </div>
 
-<div class="bot-control-panel">
+    <!-- 
+      NUEVO LAYOUT: Fila 1 con Bot y Análisis IA
+    -->
+    <div class="row">
+
+        <!-- Tarjeta 1: Control del Bot (col-lg-5) -->
+        <div class="col-lg-5 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <h4 class="card-title mb-0">Control del Bot</h4>
+                    <p class="text-muted">Activa o desactiva tu estrategia.</p>
+                    <hr>
+                    <i class="bi bi-robot card-icon"></i>
+                    
+                    <div class="mb-3">
+                        <h5 class="fw-normal">Estado Actual:</h5>
+                        {% if settings.isActive %}
+                            <h3>
+                                <span class="status-dot active"></span>
+                                <span class="fw-bold text-success">Activado</span>
+                            </h3>
+                            <p>Buscando operaciones en <strong class="text-primary">{{ selected_asset | replace("_", " ") | capitalize }}</strong>.</p>
+                        {% else %}
+                            <h3>
+                                <span class="status-dot inactive"></span>
+                                <span class="fw-bold text-danger">Desactivado</span>
+                            </h3>
+                            <p>Tu bot está en pausa. Actívalo para comenzar.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mt-auto">
+                        {% if settings.isActive %}
+                            <form action="{{ url_for('deactivate_bot') }}" method="post" class="d-grid">
+                                <button type="submit" class="btn btn-danger btn-lg w-100">
+                                    <i class="bi bi-stop-circle"></i> Desactivar Bot
+                                </button>
+                            </form>
+                        {% else %}
+                            <form action="{{ url_for('activate_bot') }}" method="post" class="d-grid">
+                                <button type="submit" class="btn btn-success btn-lg w-100">
+                                    <i class="bi bi-play-circle"></i> Activar Bot
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta 2: Análisis IA (¡NUEVA!) -->
+        <div class="col-lg-7 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h4 class="card-title mb-0">Análisis IA (Gemini)</h4>
+                    <p class="text-muted">Sugerencia para el activo seleccionado.</p>
+                    <hr> 
+                    <i class="bi bi-magic card-icon"></i>
+                    
+                    <!-- Contenido dinámico (simulado) basado en el activo -->
+                    {% if "btc" in selected_asset %}
+                        <h3 class="text-success fw-bold">COMPRA FUERTE</h3>
+                        <p class="fs-5">Nuestros modelos detectan una fuerte acumulación de volumen en <strong class="text-warning">Bitcoin</strong>. El sentimiento en redes es positivo. Alta probabilidad de ruptura alcista.</p>
+                    {% elif "eth" in selected_asset %}
+                        <h3 class="text-warning fw-bold">NEUTRAL</h3>
+                        <p class="fs-5">Volatilidad alta en <strong class="text-info">Ethereum</strong>. El bot esperará una confirmación de ruptura por encima de la resistencia de $3,100.</p>
+                    {% elif "oro" in selected_asset %}
+                        <h3 class="text-danger fw-bold">VENTA DÉBIL</h3>
+                        <p class="fs-5">Indicadores de sobrecompra en <strong class="text-warning">Oro</strong>. El bot buscará posiciones cortas si el precio no logra mantener el soporte.</p>
+                    {% else %}
+                        <h3 class="text-secondary fw-bold">ESPERANDO DATOS</h3>
+                        <p class="fs-5">El análisis de IA está procesando el activo <strong class="text-primary">{{ selected_asset | replace("_", " ") | capitalize }}</strong>. Los datos estarán disponibles en breve.</p>
+                    {% endif %}
+
+                    <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-primary mt-auto">
+                      <i class="bi bi-search"></i> Ver análisis completo
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- Fin .row 1 -->
+
+    <!-- 
+      FILA 2: Gráfica de Mercado en Vivo (¡NUEVA!)
+    -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title mb-0">Mercado en Vivo</h4>
+                    <p class="text-muted">Gráfica del activo seleccionado: <strong class="text-primary">{{ selected_asset | replace("_", " ") | capitalize }}</strong></H4>
+                    <hr> 
+                    <i class="bi bi-bar-chart-line card-icon"></i>
+                    
+                    <!-- 
+                      Contenedor VACÍO para la gráfica.
+                      El script de abajo lo llenará.
+                    -->
+                    <div class="tradingview-widget-container" style="height: 450px;" id="tv-widget-container">
+                      <div class="tradingview-widget-container__widget"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- Fin .row 2 -->
+
+</div> <!-- Fin .container -->
+
+<!-- 
+  SCRIPT LOADER (El que SÍ funciona)
+  Este script ahora crea la GRÁFICA GRANDE (Symbol Overview)
+-->
+<script type="text/javascript">
+
+  // 1. Recibimos la variable de Python (Flask)
+  const selectedAsset = "{{ selected_asset }}";
+
+  // 2. Creamos un "traductor" de nuestros ajustes a símbolos de TradingView
+  const symbolTranslator = {
+    "crypto_btc_usd": "BINANCE:BTCUSDT",
+    "crypto_eth_usd": "BINANCE:ETHUSDT",
+    "crypto_sol_usd": "BINANCE:SOLUSDT",
+    "forex_eur_usd": "FX:EURUSD",
+    "commodity_oro": "OANDA:XAUUSD",
+    "index_spx_500": "FOREXCOM:SPXUSD"
+  };
+
+  // 3. Buscamos el símbolo (o usamos BTC como default)
+  let symbolToShow = symbolTranslator[selectedAsset] || "BINANCE:BTCUSDT";
+
+  // 4. Esperamos a que la página se cargue (para evitar errores)
+  window.addEventListener('load', function() {
     
-    <h3>Control del Bot</h3>
-    
-    <div class="bot-status">
-        {% if settings.isActive %}
-            <p>Estado: <span class="status-active">Activado</span></p>
-            <p>El bot está operando según tus ajustes.</p>
-        {% else %}
-            <p>Estado: <span class="status-inactive">Desactivado</span></p>
-            <p>El bot está en pausa. Actívalo para comenzar.</p>
-        {% endif %}
-    </div>
+    // 5. Preparamos la configuración de la GRÁFICA GRANDE
+    const widgetConfig = {
+      "symbols": [
+        [ symbolToShow ] // <-- ¡AQUÍ USAMOS LA VARIABLE!
+      ],
+      "chartOnly": false,
+      "width": "100%",
+      "height": 450,
+      "locale": "es",
+      "colorTheme": "dark",
+      "autosize": false,
+      "showVolume": false,
+      "showMA": false,
+      "hideDateRanges": false,
+      "hideMarketStatus": false,
+      "hideSymbolLogo": false,
+      "scalePosition": "right",
+      "scaleMode": "Normal",
+      "fontFamily": "inherit",
+      "fontSize": "10",
+      "noTimeScale": false,
+      "valuesTracking": "1",
+      "changeMode": "price-and-percent",
+      "chartType": "area",
+      "maLineColor": "#2962FF",
+      "maLineWidth": 1,
+      "maLength": 9,
+      "backgroundColor": "rgba(0, 0, 0, 0)", // Transparente
+      "lineWidth": 2,
+      "lineType": 0,
+      "dateRanges": ["1d", "1m", "3m", "1y", "5y"]
+    };
 
-    <div class="bot-actions">
-        {% if settings.isActive %}
-            <form action="{{ url_for('deactivate_bot') }}" method="post">
-                <button type="submit" class="button-deactivate">Desactivar Bot</button>
-            </form>
-        {% else %}
-            <form action="{{ url_for('activate_bot') }}" method="post">
-                <button type="submit" class="button-activate">Activar Bot</button>
-            </form>
-        {% endif %}
-    </div>
+    // 6. Creamos el script y lo "inyectamos" en la página
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https.://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js';
+    script.async = true;
+    script.innerHTML = JSON.stringify(widgetConfig);
 
-    <hr>
-
-    <div class="bot-links">
-        <p>Configura tu estrategia o revisa tus ganancias:</p>
-        <a href="{{ url_for('bot_settings') }}" class="button-link">Ir a Ajustes</a>
-        <a href="{{ url_for('performance') }}" class="button-link">Ver Rendimientos</a>
-    </div>
-
-</div>
-
+    document.getElementById('tv-widget-container').appendChild(script);
+  });
+</script>
 {% endblock %}

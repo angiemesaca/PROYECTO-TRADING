@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <!-- Columna 1: Menú de Activos (Ahora es interactivo) -->
+    <div class="col-md-4">
+        <h2 class="fw-bold mb-3">
+            <i class="bi bi-magic text-primary"></i>
+            Análisis IA (Gemini)
+        </h2>
+        <p class="text-muted">
+            Selecciona un activo para obtener un análisis de mercado en tiempo real.
+        </p>
+        
+        <!-- 
+          Usamos 'list-group' pero ahora con IDs para el JavaScript.
+          'data-symbol' tiene el término de búsqueda.
+          'data-name' tiene el nombre bonito.
+        -->
+        <div class="list-group shadow-sm" id="asset-list">
+            <a href="#" class="list-group-item list-group-item-action" data-symbol="Bitcoin (BTC)" data-name="Bitcoin">
+                <h5 class="mb-1">Bitcoin (BTC)</h5>
+                <small>Criptomoneda</small>
+            </a>
+            <a href="#" class="list-group-item list-group-item-action" data-symbol="Ethereum (ETH)" data-name="Ethereum">
+                <h5 class="mb-1">Ethereum (ETH)</h5>
+                <small>Criptomoneda</small>
+            </a>
+            <a href="#" class="list-group-item list-group-item-action" data-symbol="Oro (XAU)" data-name="Oro (XAU)">
+                <h5 class="mb-1">Oro (XAU)</h5>
+                <small>Commodity</small>
+            </a>
+            <a href="#" class="list-group-item list-group-item-action" data-symbol="Índice S&P 500 (SPX)" data-name="S&P 500">
+                <h5 class="mb-1">S&P 500 (SPX)</h5>
+                <small>Índice</small>
+            </a>
+        </div>
+    </div>
+
+    <!-- Columna 2: Gráfica y Análisis -->
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body" style="min-height: 400px;">
+                <h4 class="card-title" id="analysis-title">Selecciona un activo</h4>
+                <p class="card-subtitle mb-2 text-muted" id="analysis-subtitle">Esperando tu selección...</p>
+                <hr>
+                
+                <!-- 
+                  Este contenedor se llenará con la respuesta de la IA
+                  o con un indicador de carga (Spinner).
+                -->
+                <div id="analysis-output">
+                    <div class="text-center text-muted p-5">
+                        <i class="bi bi-search" style="font-size: 3rem;"></i>
+                        <p class="mt-2">El análisis de IA aparecerá aquí.</p>
+                    </div>
+                </div>
+
+                <!-- Contenedor para las fuentes (grounding) -->
+                <div id="analysis-sources" class="mt-4" style="display: none;">
+                    <h6 class="text-muted">Fuentes (Google Search):</h6>
+                    <ul class="list-group list-group-flush" id="sources-list"></ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 
+  AQUÍ ESTÁ LA MAGIA (El Script de IA)
+-->
+<script>
+    // --- 1. Constantes y Configuración ---
+    const assetList = document.getElementById('asset-list');
+    const analysisTitle = document.getElementById('analysis-title');
+    const analysisSubtitle = document.getElementById('analysis-subtitle');
+    const analysisOutput = document.getElementById('analysis-output');
+    const analysisSources = document.getElementById('analysis-sources');
+    const sourcesList = document.getElementById('sources-list');
+
+    // API Key de Gemini (vacía, como siempre)
+    const apiKey = ""; 
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+    // --- 2. El "Listener" (qué pasa al hacer clic) ---
+    assetList.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Encuentra el 'list-group-item' al que se hizo clic
+        const target = e.target.closest('.list-group-item');
+        if (!target) return;
+
+        // Quita la clase 'active' de todos y pónsela al seleccionado
+        document.querySelectorAll('#asset-list .list-group-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        target.classList.add('active');
+
+        // Obtenemos los datos del activo
+        const assetSymbol = target.dataset.symbol;
+        const assetName = target.dataset.name;
+
+        // ¡Llamamos a la IA!
+        getAiAnalysis(assetSymbol, assetName);
+    });
+
+    // --- 3. El Indicador de Carga (Spinner) ---
+    function showLoading() {
+        analysisTitle.textContent = `Analizando ${name}...`;
+        analysisSubtitle.textContent = `Consultando a Gemini y Google (tiempo real)...`;
+        analysisSources.style.display = 'none';
+        sourcesList.innerHTML = '';
+        analysisOutput.innerHTML = `
+            <div class="d-flex justify-content-center p-5">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <p class="text-center text-muted">Esto puede tardar unos segundos...</p>
+        `;
+    }
+
+    // --- 4. La Función que llama a la IA (¡La Importante!) ---
+    async function getAiAnalysis(symbol, name) {
+        showLoading();
+
+        // 1. Preparamos el Prompt
+        const systemPrompt = "Actúa como un analista financiero senior de un fondo de cobertura. Eres directo, profesional y usas lenguaje técnico. No saludes. Tu respuesta debe estar en español y formateada en HTML (párrafos <p> y listas <ul>/<li>).";
+        const userQuery = `
+          Analiza el estado actual del mercado para ${symbol} (en tiempo real). 
+          Dame un resumen de 3 puntos clave (tendencia, noticias recientes, sentimiento) 
+          y concluye con una recomendación de trading (COMPRA, VENTA, o MANTENER) y por qué.
+        `;
+
+        // 2. Preparamos el Payload
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            // ¡AQUÍ ESTÁ LA MAGIA! Habilitamos la búsqueda en Google
+            tools: [{ "google_search": {} }],
+            systemInstruction: {
+                parts: [{ text: systemPrompt }]
+            },
+        };
+
+        // 3. Hacemos la llamada (fetch)
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error de API: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            const candidate = result.candidates?.[0];
+
+            if (candidate && candidate.content?.parts?.[0]?.text) {
+                // 4. Obtenemos la respuesta de la IA (texto HTML)
+                const aiHtmlResponse = candidate.content.parts[0].text;
+                analysisTitle.textContent = `Análisis de: ${name}`;
+                analysisSubtitle.textContent = `Completado a las ${new Date().toLocaleTimeString()}`;
+                analysisOutput.innerHTML = aiHtmlResponse;
+
+                // 5. Mostramos las fuentes (Google Search)
+                const groundingMetadata = candidate.groundingMetadata;
+                if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                    const sources = groundingMetadata.groundingAttributions
+                        .map(attr => attr.web)
+                        .filter(web => web?.uri && web.title);
+                    
+                    if (sources.length > 0) {
+                        sourcesList.innerHTML = sources
+                            .map(source => `<li class="list-group-item bg-transparent border-secondary-subtle"><a href="${source.uri}" target="_blank">${source.title}</a></li>`)
+                            .join('');
+                        analysisSources.style.display = 'block';
+                    }
+                }
+            } else {
+                throw new Error("Respuesta de la IA inválida.");
+            }
+        } catch (error) {
+            console.error(error);
+            analysisTitle.textContent = "Error en el Análisis";
+            analysisSubtitle.textContent = "No se pudo conectar con el servicio de IA.";
+            analysisOutput.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+        }
+    }
+</script>
+{% endblock %}

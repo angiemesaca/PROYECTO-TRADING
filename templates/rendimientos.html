@@ -1,67 +1,205 @@
 {% extends 'base.html' %}
+
 {% block content %}
+<div class="container mt-4">
 
-    <h2 class="text-center mb-4">Rendimiento del Bot</h2>
+    <!-- Fila del Título y Botón de Regenerar -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-8">
+            <h2 class="fw-bold"><i class="bi bi-graph-up-arrow text-primary"></i> Rendimiento del Bot</h2>
+            <p class="text-muted">Análisis de las operaciones simuladas por tu estrategia.</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <form action="{{ url_for('generate_mock') }}" method="post">
+                <button type="submit" class="btn btn-outline-warning">
+                    <i class="bi bi-arrow-clockwise"></i> Generar Nuevo Historial (Mock)
+                </button>
+            </form>
+            <form action="{{ url_for('clear_history') }}" method="POST" style="display: inline-block; margin-left: 10px;">
+                <button type="submit" class="tu-clase-de-boton-rojo-o-peligro">
+                    Limpiar Historial (Empezar de Cero)
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fila de Estadísticas (HU-7) -->
+    <div class="row mb-4 g-3">
+        
+        <!-- Stat Card 1: Ganancia Total -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm stat-card {{ 'positive' if stats.ganancia_total > 0 else 'negative' }}">
+                <div class="card-body position-relative">
+                    <h6 class="stat-card-title">Ganancia Neta Total</h6>
+                    <h2 class="stat-card-value">${{ "%.2f"|format(stats.ganancia_total) }}</h2>
+                    <i class="bi bi-cash-coin stat-card-icon"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stat Card 2: Win Rate -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm stat-card">
+                <div class="card-body position-relative">
+                    <h6 class="stat-card-title">Win Rate</h6>
+                    <h2 class="stat-card-value">{{ "%.1f"|format(stats.win_rate) }}%</h2>
+                    <i class="bi bi-pie-chart stat-card-icon"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stat Card 3: Total Trades -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm stat-card">
+                <div class="card-body position-relative">
+                    <h6 class="stat-card-title">Operaciones Totales</h6>
+                    <h2 class="stat-card-value">{{ stats.total_trades }}</h2>
+                    <i class="bi bi-arrows-vertical stat-card-icon"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stat Card 4: Trades Ganadores -->
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm stat-card positive">
+                <div class="card-body position-relative">
+                    <h6 class="stat-card-title">Trades Ganadores</h6>
+                    <h2 class="stat-card-value">{{ stats.trades_ganadores }}</h2>
+                    <i class="bi bi-check-lg stat-card-icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fila de Gráfica y Tabla -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+
+                    <!-- 1. La Gráfica -->
+                    <h4 class="card-title">Avance de Capital (PnL Acumulado)</h4>
+                    
+                    <!-- 
+                      AQUÍ ESTÁ EL ARREGLO 1:
+                      Pasamos los datos de Flask a atributos 'data-*' en el HTML.
+                      Usamos '|e' (escape) para asegurar que el JSON sea un string HTML válido.
+                    -->
+                    <canvas id="pnlChart" 
+                            style="height: 300px; max-height: 300px;"
+                            data-labels="{{ labels | tojson | e }}"
+                            data-pnl-data="{{ pnl_data | tojson | e }}">
+                    </canvas>
+                    
+                    <hr class="my-4">
+
+                    <!-- 2. La Tabla -->
+                    <h4 class="card-title">Historial de Operaciones</h4>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Activo</th>
+                                    <th>Tipo</th>
+                                    <th>Precio</th>
+                                    <th>PnL ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if trades %}
+                                    {% for trade in trades %}
+                                    <tr>
+                                        <td class="text-muted">{{ trade.timestamp }}</td>
+                                        <td>{{ trade.asset }}</td>
+                                        <td>
+                                            {% if trade.type == 'buy' %}
+                                                <span class="badge text-bg-success">Compra</span>
+                                            {% else %}
+                                                <span class="badge text-bg-danger">Venta</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>${{ "%.2f"|format(trade.price) }}</td>
+                                        <td class="fw-bold {{ 'text-success' if trade.pnl > 0 else 'text-danger' }}">
+                                            {{ "%.2f"|format(trade.pnl) }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center p-4">
+                                            <p class="text-muted mb-0">No hay datos de rendimiento.</p>
+                                            <p class="text-muted mb-0">Ve a "Ajustes Bot", guarda una estrategia y activa el bot.</p>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div> <!-- Fin .container -->
+
+<!-- 
+  AQUÍ ESTÁ EL ARREGLO 2:
+  Este bloque de script ahora es 100% JavaScript válido.
+  Tu editor ya no se quejará.
+-->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // 1. Obtenemos el elemento <canvas>
+    const chartEl = document.getElementById('pnlChart');
     
-    <h4 style="color: var(--medium-gray); text-align: center;">Avance de Capital (PnL Acumulado)</h4>
-    <canvas id="graficoRendimiento" width="400" height="150"></canvas>
+    // 2. Leemos los datos desde sus atributos 'data-*'
+    // (Usamos JSON.parse para convertir el string de vuelta a un array)
+    const labels = JSON.parse(chartEl.dataset.labels);
+    const pnlData = JSON.parse(chartEl.dataset.pnlData);
+
+    // 3. Obtenemos el contexto (como antes)
+    const ctx = chartEl.getContext('2d');
     
-    <hr style="margin: 30px 0;">
-
-    <h4 style="color: var(--medium-gray); text-align: center;">Historial de Operaciones</h4>
-    <table class="trade-table">
-        <thead>
-            <tr>
-                <th>Timestamp</th>
-                <th>Activo</th>
-                <th>Tipo</th>
-                <th>Precio</th>
-                <th>PnL ($)</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for trade in trades %}
-            <tr>
-                <td>{{ trade.timestamp }}</td>
-                <td>{{ trade.asset }}</td>
-                <td class="{{ 'tipo-buy' if trade.type == 'buy' else 'tipo-sell' }}">
-                    {{ trade.type | capitalize }}
-                </td>
-                <td>${{ "%.2f"|format(trade.price) }}</td>
-                <td class="{{ 'pnl-pos' if trade.pnl > 0 else 'pnl-neg' }}">
-                    {{ "%.2f"|format(trade.pnl) }}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script id="data" type="application/json">
-        {"labels": {{ labels|tojson|safe }}, "pnl_data": {{ pnl_data|tojson|safe }}}
-    </script>
-    <script>
-        const data = JSON.parse(document.getElementById('data').textContent);
-        const ctx = document.getElementById('graficoRendimiento').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    label: 'PnL Acumulado ($)',
-                    data: data.pnl_data,
-                    borderColor: 'rgb(0, 100, 200)', // Un color azul
-                    borderWidth: 2,
-                    tension: 0.1
-                }]
+    // Función para el color de la línea
+    const lastPnl = pnlData.length > 0 ? pnlData[pnlData.length - 1] : 0;
+    const chartLineColor = lastPnl >= 0 ? 'rgb(25, 135, 84)' : 'rgb(220, 53, 69)';
+    
+    // 4. Creamos la gráfica (sin cambios)
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'PnL Acumulado ($)',
+                data: pnlData,
+                borderColor: chartLineColor,
+                borderWidth: 2,
+                tension: 0.1,
+                fill: false,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: { color: '#adb5bd' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                },
+                x: {
+                    ticks: { color: '#adb5bd' },
+                    grid: { display: false }
+                }
             },
-            options: {
-                scales: {
-                    y: { beginAtZero: false },
-                    x: {}
+            plugins: {
+                legend: {
+                    labels: { color: '#f8f9fa' }
                 }
             }
-        });
-    </script>
-
+        }
+    });
+</script>
 {% endblock %}
