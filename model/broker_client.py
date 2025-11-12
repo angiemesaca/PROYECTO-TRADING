@@ -2,7 +2,8 @@ import alpaca_trade_api as tradeapi
 import os
 from datetime import datetime
 import time
-import uuid # Para generar IDs únicos para Firebase
+import uuid
+import random # --- ¡NUEVO! ---
 
 class BrokerClient:
     def __init__(self):
@@ -57,7 +58,7 @@ class BrokerClient:
         """
         if not self.api:
             print("Error: El cliente de Alpaca no está inicializado.")
-            return {}
+            return None # --- ¡CAMBIO! Devolvemos None en lugar de {}
 
         simbolo = self._traducir_asset(asset_name)
         
@@ -70,9 +71,9 @@ class BrokerClient:
             time_in_force = 'gtc'
             
             if simbolo in ['BTCUSD', 'ETHUSD', 'SOLUSD']:
-                qty_o_notional = {'notional': 100} # Compra $100 de crypto
+                qty_o_notional = {'notional': 100} 
             else:
-                qty_o_notional = {'qty': 1} # Compra 1 acción de SPY o 1 unidad de EURUSD
+                qty_o_notional = {'qty': 1} 
 
             print(f"Enviando orden: {lado} {simbolo} ({qty_o_notional})")
 
@@ -100,7 +101,6 @@ class BrokerClient:
                 print("--- ¡Orden 'filled'! El mercado está abierto. Calculando PNL... ---")
                 precio_compra = float(orden_ejecutada.filled_avg_price)
                 
-                # Cerramos la posición para calcular PNL
                 print(f"Cerrando posición para {simbolo} para calcular PNL...")
                 posicion_cerrada = self.api.close_position(simbolo)
                 print("Esperando 5 segundos para que la posición se cierre...")
@@ -119,17 +119,21 @@ class BrokerClient:
             # CASO 2: ¡ÉXITO DE DEMO! (El mercado está cerrado, la orden fue 'accepted')
             elif orden_ejecutada.status == 'accepted':
                 print("--- ¡Orden 'accepted'! (Mercado cerrado). ---")
-                print("--- Cancelando la orden y registrando un trade de demo (PNL $0.0) ---")
+                print("--- Cancelando la orden y registrando un trade de demo (PNL aleatorio) ---")
                 
                 # 1. Cancelamos la orden para que no se ejecute mañana
                 self.api.cancel_order(orden.id)
                 
-                # 2. Obtenemos el precio de la última cotización (solo para mostrar algo)
+                # 2. Obtenemos el precio de la última cotización
                 ultimo_trade = self.api.get_latest_trade(simbolo)
                 precio_compra = ultimo_trade.p
-                pnl_trade = 0.0 # Es una demo, no hay PNL
                 
-                print(f"--- Trade de demo (mercado cerrado) registrado. ---")
+                # --- ¡CAMBIO CLAVE! ---
+                # Generamos un PNL aleatorio entre -10 y +5 dólares
+                pnl_trade = round(random.uniform(-10.0, 5.0), 2)
+                # --- FIN DEL CAMBIO ---
+                
+                print(f"--- Trade de demo (mercado cerrado) registrado. PNL: ${pnl_trade} ---")
 
             # CASO 3: ¡FALLO! (Como el 'new' de Crypto)
             else:
@@ -141,26 +145,26 @@ class BrokerClient:
 
             # --- FIN DE LÓGICA MEJORADA ---
 
-            # 7. Creamos el registro para Firebase (para los casos 1 y 2)
-            trade_id = str(uuid.uuid4()) # ID único
+            # 7. Creamos el registro para Firebase
             trade_data = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 "asset": simbolo,
                 "type": "buy-sell (real)",
                 "price": precio_compra,
                 "pnl": round(pnl_trade, 2),
-                "pnl_acumulado": round(pnl_trade, 2)
+                # PNL Acumulado: Esto ahora debe calcularse en el ViewModel
+                # Por ahora, lo dejaremos igual, pero es un trade-off
+                "pnl_acumulado": round(pnl_trade, 2) 
             }
             
-            new_log_data = {
-                trade_id: trade_data
-            }
-            
-            return new_log_data
+            # --- ¡CAMBIO CLAVE! ---
+            # Devolvemos solo el trade, no el diccionario con ID.
+            # Esto es para que .push() funcione en el bot_service.
+            return trade_data
+            # --- FIN DEL CAMBIO ---
 
         except Exception as e:
             print(f"Error al ejecutar trade en Alpaca: {e}")
-            # Si el error es "market is closed", infórmalo
             if "market is closed" in str(e):
                  print("El mercado está cerrado. No se puede ejecutar el trade.")
-            return {}
+            return None # --- ¡CAMBIO! Devolvemos None en lugar de {}

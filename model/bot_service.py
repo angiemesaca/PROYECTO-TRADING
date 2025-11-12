@@ -13,15 +13,15 @@ class BotService:
         self.db = db
         # --- ¡NUEVO! ---
         # Inicializamos el cliente del broker
-        # Esto se conecta a Alpaca en cuanto arranca la app
         self.broker = BrokerClient()
         # --- ¡FIN NUEVO! ---
 
     # -----------------------------------------------------------------
-    # --- FUNCIONES LLAMADAS POR EL VIEWMODEL (USAN TOKEN) ---
-    # (Todas estas ya las tenías y funcionan - NO CAMBIAN)
+    # (TODAS LAS OTRAS FUNCIONES: get_bot_settings, save_bot_settings, 
+    #  get_trade_log, get_api_keys, etc. SIGUEN IGUAL. 
+    #  Solo reemplaza la función 'generate_mock_trade_log' de abajo)
     # -----------------------------------------------------------------
-
+    
     def get_bot_settings(self, user_id, token):
         try:
             data = self.db.child("bot_settings").child(user_id).get(token=token)
@@ -81,34 +81,34 @@ class BotService:
             return False
             
     # --- ¡NUESTRA FUNCIÓN DE BACKTEST! ---
-    # --- ¡MODIFICADA! ---
+    # --- ¡MODIFICADA PARA GUARDAR MÚLTIPLES TRADES! ---
     def generate_mock_trade_log(self, user_id, token, asset_name="crypto_btc_usd"):
         """
-        ¡YA NO SIMULA CON RANDOM!
-        Se conecta a un broker real (Alpaca Paper Trading), ejecuta
-        un trade rápido (scalp) y guarda el resultado en el trade log.
-        ¡Usa .set() para REEMPLAZAR el log anterior!
+        ¡YA NO ES UN MOCK!
+        Se conecta a Alpaca, ejecuta un trade (o simula uno si el mercado
+        está cerrado) y ¡AÑADE EL RESULTADO AL LOG!
         """
         print(f"--- Conectando a Broker Real para {user_id} con {asset_name} ---")
         try:
+            # Apuntamos a la raíz del log del usuario
             log_ref = self.db.child("trade_log").child(user_id)
             
             # --- ¡LÓGICA REEMPLAZADA! ---
-            # ¡Llamamos a nuestro cliente de broker!
-            # Esta función se conecta a Alpaca, hace el trade (compra y vende)
-            # y nos devuelve el diccionario de log listo para Firebase.
-            new_log_data = self.broker.ejecutar_trade_y_obtener_log(asset_name)
+            # Llamamos a nuestro cliente de broker.
+            # Ahora devuelve solo el diccionario del trade, o None si falla.
+            trade_data = self.broker.ejecutar_trade_y_obtener_log(asset_name)
             # --- FIN DE LÓGICA REEMPLAZADA ---
 
-            if not new_log_data:
+            if not trade_data:
                 # El trade falló (ej: mercado cerrado o error de API)
                 print("El broker no devolvió datos (trade fallido o mercado cerrado).")
-                # Devolvemos False para que la UI pueda mostrar un error
                 return False
 
-            # ¡IMPORTANTE! Usamos .set() para REEMPLAZAR el historial
-            # con este nuevo trade REAL.
-            log_ref.set(new_log_data, token=token)
+            # --- ¡CAMBIO CLAVE! ---
+            # ¡Usamos .push() para AÑADIR el trade al historial!
+            # .set() BORRABA el historial anterior.
+            log_ref.push(trade_data, token=token)
+            # --- FIN DEL CAMBIO ---
             
             print("--- ¡Trade real (paper) ejecutado y guardado en Firebase! ---")
             return True
