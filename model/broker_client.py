@@ -44,9 +44,11 @@ class BrokerClient:
         # Si no lo encontramos, usamos SPY como default
         simbolo = traducciones.get(asset_name, "SPY")
         
-        # Importante: Alpaca usa 'BTCUSD' (sin /) para crypto y oro
-        if "crypto" in asset_name or "oro" in asset_name:
+        # --- ¡AQUÍ ESTÁ EL ARREGLO! ---
+        # Importante: Alpaca usa 'BTCUSD' (sin /) para crypto, oro y FOREX
+        if "crypto" in asset_name or "oro" in asset_name or "forex" in asset_name:
             simbolo = simbolo.replace('/', '')
+        # --- FIN DEL ARREGLO ---
             
         return simbolo
 
@@ -72,7 +74,7 @@ class BrokerClient:
             if simbolo in ['BTCUSD', 'ETHUSD', 'SOLUSD']:
                 qty_o_notional = {'notional': 100} # Compra $100 de crypto
             else:
-                qty_o_notional = {'qty': 1} # Compra 1 acción de SPY o 1 unidad de EUR/USD
+                qty_o_notional = {'qty': 1} # Compra 1 acción de SPY o 1 unidad de EURUSD
 
             print(f"Enviando orden: {lado} {simbolo} ({qty_o_notional})")
 
@@ -84,20 +86,17 @@ class BrokerClient:
                 **qty_o_notional
             )
             
-            # 2. Esperamos más tiempo para que la orden se ejecute
-            # --- ¡CAMBIO! De 2 a 5 segundos ---
+            # 2. Esperamos 5 segundos
             print("Esperando 5 segundos para que la orden se llene...")
             time.sleep(5)
             
             # 3. Obtenemos la orden ejecutada para saber el precio
             orden_ejecutada = self.api.get_order(orden.id)
             
-            # --- ¡NUEVO LOG! Para ver qué status tiene ahora ---
             print(f"--- Status de la orden después de 5s: {orden_ejecutada.status} ---")
 
             if orden_ejecutada.status != 'filled':
                 print(f"La orden no se completó (status: {orden_ejecutada.status}).")
-                # Si sigue en 'new', la cancelamos para no dejarla colgada
                 if orden_ejecutada.status == 'new':
                     self.api.cancel_order(orden.id)
                     print("--- Orden 'new' cancelada. ---")
@@ -110,7 +109,6 @@ class BrokerClient:
             posicion_cerrada = self.api.close_position(simbolo)
             
             # 5. Esperamos a que se cierre
-            # --- ¡CAMBIO! De 2 a 5 segundos ---
             print("Esperando 5 segundos para que la posición se cierre...")
             time.sleep(5)
             
