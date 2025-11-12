@@ -2,16 +2,23 @@ import random
 from datetime import datetime, timedelta
 # ¡SOLO IMPORTAMOS 'db' (pyrebase)
 from firebase_config import db
+# --- ¡NUEVO! ---
+# Importamos nuestro nuevo cliente de broker
+from model.broker_client import BrokerClient
+# --- ¡FIN NUEVO! ---
 
 class BotService:
     def __init__(self):
         # Conexión Pyrebase (para operaciones con token)
         self.db = db
-        # ¡ELIMINADO! self.admin_db ya no se usa
+        # --- ¡NUEVO! ---
+        # Inicializamos el cliente del broker
+        self.broker = BrokerClient()
+        # --- ¡FIN NUEVO! ---
 
     # -----------------------------------------------------------------
     # --- FUNCIONES LLAMADAS POR EL VIEWMODEL (USAN TOKEN) ---
-    # (Todas estas ya las tenías y funcionan)
+    # (Todas estas ya las tenías y funcionan - NO CAMBIAN)
     # -----------------------------------------------------------------
 
     def get_bot_settings(self, user_id, token):
@@ -73,73 +80,38 @@ class BotService:
             return False
             
     # --- ¡NUESTRA FUNCIÓN DE BACKTEST! ---
+    # --- ¡MODIFICADA! ---
     def generate_mock_trade_log(self, user_id, token, asset_name="crypto_btc_usd"):
         """
-        Simula un historial de operaciones (log) para el bot.
-        ¡Usa .set() para REEMPLAZAR el log anterior (es un backtest nuevo!)
+        ¡YA NO SIMULA!
+        Se conecta a un broker real (Alpaca Paper Trading), ejecuta
+        un trade rápido (scalp) y guarda el resultado en el trade log.
+        ¡Usa .set() para REEMPLAZAR el log anterior!
         """
-        print(f"--- Generando historial mock de trades para {user_id} con {asset_name} ---")
+        print(f"--- Conectando a Broker Real para {user_id} con {asset_name} ---")
         try:
             log_ref = self.db.child("trade_log").child(user_id)
-            new_log_data = {}
             
-            # Lógica de Precio
-            base_price = 60000 
-            price_fluctuation = 500
-            decimals = 2
-            asset_display_name = "BTC/USD"
+            # ¡Llamamos a nuestro cliente de broker!
+            # Esta función se conecta a Alpaca, hace el trade y nos
+            # devuelve el diccionario de log listo para Firebase.
+            new_log_data = self.broker.ejecutar_trade_y_obtener_log(asset_name)
 
-            if "eth" in asset_name:
-                base_price = 3000
-                price_fluctuation = 100
-                asset_display_name = "ETH/USD"
-            elif "sol" in asset_name:
-                base_price = 150
-                price_fluctuation = 10
-                asset_display_name = "SOL/USD"
-            elif "eur" in asset_name:
-                base_price = 1.10
-                price_fluctuation = 0.01
-                decimals = 4
-                asset_display_name = "EUR/USD"
-            elif "oro" in asset_name:
-                base_price = 2300
-                price_fluctuation = 20
-                asset_display_name = "Oro (XAU)"
-            elif "spx" in asset_name:
-                base_price = 5000
-                price_fluctuation = 50
-                asset_display_name = "S&P 500"
-            
-            pnl_total = 0
-            current_time = datetime.now() - timedelta(days=5)
+            if not new_log_data:
+                # El trade falló (ej: mercado cerrado)
+                print("El broker no devolvió datos (trade fallido o mercado cerrado).")
+                # Devolvemos False para que la UI pueda mostrar un error
+                return False
 
-            # Generamos 30 trades
-            for i in range(30):
-                current_time += timedelta(hours=random.randint(2, 6))
-                pnl = round(random.uniform(-150, 250), 2)
-                pnl_total += pnl
-                current_price = base_price + random.uniform(-price_fluctuation, price_fluctuation)
-                
-                trade_data = {
-                    "timestamp": current_time.strftime("%Y-%m-%d %H:%M"),
-                    "asset": asset_display_name,
-                    "type": random.choice(["buy", "sell"]),
-                    "price": round(current_price, decimals),
-                    "pnl": pnl,
-                    "pnl_acumulado": round(pnl_total, 2)
-                }
-                # Usamos generate_key para crear un ID único
-                new_log_data[self.db.generate_key()] = trade_data
-                base_price = current_price
-                
             # ¡IMPORTANTE! Usamos .set() para REEMPLAZAR el historial
-            # con este nuevo backtest.
+            # con este nuevo trade REAL.
             log_ref.set(new_log_data, token=token)
-            print("--- Historial mock de trades generado (Backtest). ---")
+            
+            print("--- ¡Trade real (paper) ejecutado y guardado en Firebase! ---")
             return True
+        
         except Exception as e:
-            print(f"Error al generar log mock: {e}")
+            print(f"Error al generar log con broker real: {e}")
             import traceback
             print(traceback.format_exc())
             return False

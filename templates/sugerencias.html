@@ -78,7 +78,6 @@
 {% endblock %}
 
 {% block page_scripts %}
-<!-- Script para la lógica de IA -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const assetButtons = document.querySelectorAll('#asset-list .list-group-item');
@@ -107,8 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    asset_id: assetId,
-                    asset_name: assetName
+                    // --- ¡AQUÍ ESTÁ EL ARREGLO! ---
+                    // Cambiamos 'asset_id' por 'asset' para que coincida con app.py
+                    asset: assetId
+                    // --- FIN DEL ARREGLO ---
                 })
             })
             .then(response => response.json())
@@ -122,9 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     analysisContent.innerHTML = `<pre class="text-danger">${data.error}</pre>`;
                 } else {
                     analysisTitle.innerText = `Análisis de ${assetName}`;
-                    // Usamos 'pre' para respetar los saltos de línea de la IA
-                    // Reemplazamos **texto** con <strong>texto</strong>
-                    let formattedText = data.suggestion.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    // El resto de tu lógica para formatear la respuesta es perfecta
+                    let formattedText = data.analysis.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                     analysisContent.innerHTML = `<pre class="text-white" style="white-space: pre-wrap; word-wrap: break-word;">${formattedText}</pre>`;
                 }
             })
@@ -136,6 +136,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     });
+
+    // --- ¡BONUS! ---
+    // Seleccionar el activo que el usuario tiene en sus "ajustes"
+    // (Obtenemos '{{ settings.activo }}' de la plantilla)
+    const activoGuardado = '{{ settings.activo }}';
+    if (activoGuardado) {
+        const botonActivo = document.querySelector(`#asset-list button[data-asset-id="${activoGuardado}"]`);
+        if (botonActivo) {
+            botonActivo.click(); // Simulamos un clic para cargar el análisis
+        }
+    }
 });
 </script>
 {% endblock %}
