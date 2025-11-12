@@ -13,6 +13,7 @@ class BotService:
         self.db = db
         # --- ¡NUEVO! ---
         # Inicializamos el cliente del broker
+        # Esto se conecta a Alpaca en cuanto arranca la app
         self.broker = BrokerClient()
         # --- ¡FIN NUEVO! ---
 
@@ -83,7 +84,7 @@ class BotService:
     # --- ¡MODIFICADA! ---
     def generate_mock_trade_log(self, user_id, token, asset_name="crypto_btc_usd"):
         """
-        ¡YA NO SIMULA!
+        ¡YA NO SIMULA CON RANDOM!
         Se conecta a un broker real (Alpaca Paper Trading), ejecuta
         un trade rápido (scalp) y guarda el resultado en el trade log.
         ¡Usa .set() para REEMPLAZAR el log anterior!
@@ -92,13 +93,15 @@ class BotService:
         try:
             log_ref = self.db.child("trade_log").child(user_id)
             
+            # --- ¡LÓGICA REEMPLAZADA! ---
             # ¡Llamamos a nuestro cliente de broker!
-            # Esta función se conecta a Alpaca, hace el trade y nos
-            # devuelve el diccionario de log listo para Firebase.
+            # Esta función se conecta a Alpaca, hace el trade (compra y vende)
+            # y nos devuelve el diccionario de log listo para Firebase.
             new_log_data = self.broker.ejecutar_trade_y_obtener_log(asset_name)
+            # --- FIN DE LÓGICA REEMPLAZADA ---
 
             if not new_log_data:
-                # El trade falló (ej: mercado cerrado)
+                # El trade falló (ej: mercado cerrado o error de API)
                 print("El broker no devolvió datos (trade fallido o mercado cerrado).")
                 # Devolvemos False para que la UI pueda mostrar un error
                 return False

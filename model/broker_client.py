@@ -9,6 +9,7 @@ class BrokerClient:
         self.api = None
         try:
             # ¡Lee las claves de las variables de entorno de Render!
+            # Esto funciona gracias al PASO 1 que acabas de hacer.
             key_id = os.environ.get('ALPACA_KEY_ID')
             secret_key = os.environ.get('ALPACA_SECRET_KEY')
             
@@ -29,21 +30,23 @@ class BrokerClient:
             print(f"Error al inicializar el cliente de Alpaca: {e}")
 
     def _traducir_asset(self, asset_name):
-        """Traduce el nombre de tu app a un símbolo de Alpaca."""
+        """Traduce el nombre de tu app (ej: crypto_btc_usd) 
+           a un símbolo que Alpaca entiende (ej: BTCUSD)."""
+        
         traducciones = {
             "crypto_btc_usd": "BTC/USD",
             "crypto_eth_usd": "ETH/USD",
             "crypto_sol_usd": "SOL/USD",
             "forex_eur_usd": "EUR/USD",
-            "commodities_oro": "XAU/USD",
+            "commodities_oro": "XAU/USD", # Oro
             "indices_spx500": "SPY"  # Usamos el ETF SPY para el S&P 500
         }
         
-        # Por defecto, usamos SPY si no se encuentra
+        # Si no lo encontramos, usamos SPY como default
         simbolo = traducciones.get(asset_name, "SPY")
         
-        # Alpaca usa 'BTCUSD' para crypto, no 'BTC/USD'
-        if "crypto" in asset_name:
+        # Importante: Alpaca usa 'BTCUSD' (sin /) para crypto y oro
+        if "crypto" in asset_name or "oro" in asset_name:
             simbolo = simbolo.replace('/', '')
             
         return simbolo
@@ -62,13 +65,9 @@ class BrokerClient:
         try:
             print(f"--- Intentando ejecutar trade en Alpaca para: {simbolo} ---")
             
-            # 1. Obtenemos el PNL de la cuenta ANTES del trade
-            #    (En una app real, esto sería más complejo)
-            #    Por ahora, nos enfocamos en ejecutar.
-            
-            # 2. Ejecutamos una orden de compra (ej: 1 unidad o $100)
+            # 1. Ejecutamos una orden de compra (ej: 1 unidad o $100)
             #    Para cryptos, usamos 'notional' (cantidad en USD)
-            #    Para acciones (SPY), usamos 'qty' (cantidad de acciones)
+            #    Para acciones (SPY) o Forex, usamos 'qty' (cantidad de acciones)
             
             tipo_orden = 'market'
             lado = 'buy'
@@ -77,7 +76,7 @@ class BrokerClient:
             if simbolo in ['BTCUSD', 'ETHUSD', 'SOLUSD']:
                 qty_o_notional = {'notional': 100} # Compra $100 de crypto
             else:
-                qty_o_notional = {'qty': 1} # Compra 1 acción de SPY o 1 unidad de Forex
+                qty_o_notional = {'qty': 1} # Compra 1 acción de SPY o 1 unidad de EUR/USD
 
             print(f"Enviando orden: {lado} {simbolo} ({qty_o_notional})")
 
@@ -89,50 +88,49 @@ class BrokerClient:
                 **qty_o_notional
             )
             
-            # 3. Esperamos un segundo para que la orden se ejecute (solo para demo)
+            # 2. Esperamos un par de segundos para que la orden se ejecute
+            print("Esperando 2 segundos para que la orden se llene...")
             time.sleep(2)
             
-            # 4. Obtenemos la orden ejecutada para saber el precio y PNL
+            # 3. Obtenemos la orden ejecutada para saber el precio
             orden_ejecutada = self.api.get_order(orden.id)
             
             if orden_ejecutada.status != 'filled':
-                print(f"La orden no se completó (status: {orden_ejecutada.status}). Se intentará de nuevo más tarde.")
-                return {} # Devolvemos un log vacío
+                print(f"La orden no se completó (status: {orden_ejecutada.status}).")
+                raise Exception("La orden no se completó a tiempo.")
 
             precio_compra = float(orden_ejecutada.filled_avg_price)
             
-            # 5. ¡Cerramos la posición inmediatamente para saber el PNL!
-            #    Esto es un "scalp" solo para demostrar el PNL.
-            print(f"Cerrando posición para {simbolo}...")
+            # 4. ¡Cerramos la posición inmediatamente para saber el PNL!
+            #    Esto es un "scalp" solo para demostrar el PNL al instante.
+            print(f"Cerrando posición para {simbolo} para calcular PNL...")
             posicion_cerrada = self.api.close_position(simbolo)
             
-            # 6. Esperamos a que se cierre
+            # 5. Esperamos a que se cierre
             time.sleep(2)
             
-            # 7. Obtenemos el PNL de la posición cerrada
-            #    Alpaca lo devuelve en 'unrealized_pl' justo antes de cerrar, 
-            #    o en 'pl' en la orden de cierre.
-            
-            # Vamos a buscar la última posición cerrada en el log de actividades
+            # 6. Obtenemos el PNL de la posición cerrada
+            #    Buscamos en las actividades de la cuenta
             actividades = self.api.get_activities(activity_types='FILL', direction='desc', page_size=10)
             
             pnl_trade = 0.0
             for act in actividades:
-                if act.symbol == simbolo and act.side == 'sell':
-                    pnl_trade = float(act.pl)
-                    break # Encontramos el PNL de nuestro trade
+                if act.symbol == simbolo and act.side == 'sell': # Buscamos nuestro 'sell'
+                    if hasattr(act, 'pl'): # pl = Profit/Loss
+                        pnl_trade = float(act.pl)
+                        break # Encontramos el PNL de nuestro trade
             
             if pnl_trade == 0.0:
-                 print("No se pudo determinar el PNL inmediato, se registrará como 0.")
+                 print("No se pudo determinar el PNL inmediato, se registrará como 0.0")
 
-            print(f"--- Trade completado. PNL: ${pnl_trade} ---")
+            print(f"--- Trade real (paper) completado. PNL: ${pnl_trade} ---")
 
-            # 8. Creamos el registro para Firebase (en el formato que ya tienes)
+            # 7. Creamos el registro para Firebase (en el formato que ya tienes)
             trade_id = str(uuid.uuid4()) # ID único
             trade_data = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 "asset": simbolo,
-                "type": "buy-sell (scalp)",
+                "type": "buy-sell (real)", # ¡Ya no es mock!
                 "price": precio_compra,
                 "pnl": round(pnl_trade, 2),
                 "pnl_acumulado": round(pnl_trade, 2) # Es el primer y único trade
@@ -150,4 +148,4 @@ class BrokerClient:
             # Si el error es "market is closed", infórmalo
             if "market is closed" in str(e):
                  print("El mercado está cerrado. No se puede ejecutar el trade.")
-            return {}
+            return {} # Devolvemos un log vacío para que no se rompa la app
