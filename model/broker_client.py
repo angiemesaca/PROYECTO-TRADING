@@ -9,7 +9,6 @@ class BrokerClient:
         self.api = None
         try:
             # ¡Lee las claves de las variables de entorno de Render!
-            # Esto funciona gracias al PASO 1 que acabas de hacer.
             key_id = os.environ.get('ALPACA_KEY_ID')
             secret_key = os.environ.get('ALPACA_SECRET_KEY')
             
@@ -65,10 +64,7 @@ class BrokerClient:
         try:
             print(f"--- Intentando ejecutar trade en Alpaca para: {simbolo} ---")
             
-            # 1. Ejecutamos una orden de compra (ej: 1 unidad o $100)
-            #    Para cryptos, usamos 'notional' (cantidad en USD)
-            #    Para acciones (SPY) o Forex, usamos 'qty' (cantidad de acciones)
-            
+            # 1. Ejecutamos una orden de compra
             tipo_orden = 'market'
             lado = 'buy'
             time_in_force = 'gtc'
@@ -88,29 +84,37 @@ class BrokerClient:
                 **qty_o_notional
             )
             
-            # 2. Esperamos un par de segundos para que la orden se ejecute
-            print("Esperando 2 segundos para que la orden se llene...")
-            time.sleep(2)
+            # 2. Esperamos más tiempo para que la orden se ejecute
+            # --- ¡CAMBIO! De 2 a 5 segundos ---
+            print("Esperando 5 segundos para que la orden se llene...")
+            time.sleep(5)
             
             # 3. Obtenemos la orden ejecutada para saber el precio
             orden_ejecutada = self.api.get_order(orden.id)
             
+            # --- ¡NUEVO LOG! Para ver qué status tiene ahora ---
+            print(f"--- Status de la orden después de 5s: {orden_ejecutada.status} ---")
+
             if orden_ejecutada.status != 'filled':
                 print(f"La orden no se completó (status: {orden_ejecutada.status}).")
+                # Si sigue en 'new', la cancelamos para no dejarla colgada
+                if orden_ejecutada.status == 'new':
+                    self.api.cancel_order(orden.id)
+                    print("--- Orden 'new' cancelada. ---")
                 raise Exception("La orden no se completó a tiempo.")
 
             precio_compra = float(orden_ejecutada.filled_avg_price)
             
             # 4. ¡Cerramos la posición inmediatamente para saber el PNL!
-            #    Esto es un "scalp" solo para demostrar el PNL al instante.
             print(f"Cerrando posición para {simbolo} para calcular PNL...")
             posicion_cerrada = self.api.close_position(simbolo)
             
             # 5. Esperamos a que se cierre
-            time.sleep(2)
+            # --- ¡CAMBIO! De 2 a 5 segundos ---
+            print("Esperando 5 segundos para que la posición se cierre...")
+            time.sleep(5)
             
             # 6. Obtenemos el PNL de la posición cerrada
-            #    Buscamos en las actividades de la cuenta
             actividades = self.api.get_activities(activity_types='FILL', direction='desc', page_size=10)
             
             pnl_trade = 0.0
@@ -125,18 +129,17 @@ class BrokerClient:
 
             print(f"--- Trade real (paper) completado. PNL: ${pnl_trade} ---")
 
-            # 7. Creamos el registro para Firebase (en el formato que ya tienes)
+            # 7. Creamos el registro para Firebase
             trade_id = str(uuid.uuid4()) # ID único
             trade_data = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 "asset": simbolo,
-                "type": "buy-sell (real)", # ¡Ya no es mock!
+                "type": "buy-sell (real)",
                 "price": precio_compra,
                 "pnl": round(pnl_trade, 2),
-                "pnl_acumulado": round(pnl_trade, 2) # Es el primer y único trade
+                "pnl_acumulado": round(pnl_trade, 2)
             }
             
-            # Devolvemos el log en el formato que Firebase espera ({id: data})
             new_log_data = {
                 trade_id: trade_data
             }
@@ -148,4 +151,4 @@ class BrokerClient:
             # Si el error es "market is closed", infórmalo
             if "market is closed" in str(e):
                  print("El mercado está cerrado. No se puede ejecutar el trade.")
-            return {} # Devolvemos un log vacío para que no se rompa la app
+            return {}
