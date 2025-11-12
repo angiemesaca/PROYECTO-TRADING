@@ -44,11 +44,9 @@ class BrokerClient:
         # Si no lo encontramos, usamos SPY como default
         simbolo = traducciones.get(asset_name, "SPY")
         
-        # --- ¡AQUÍ ESTÁ EL ARREGLO! ---
         # Importante: Alpaca usa 'BTCUSD' (sin /) para crypto, oro y FOREX
         if "crypto" in asset_name or "oro" in asset_name or "forex" in asset_name:
             simbolo = simbolo.replace('/', '')
-        # --- FIN DEL ARREGLO ---
             
         return simbolo
 
@@ -95,39 +93,55 @@ class BrokerClient:
             
             print(f"--- Status de la orden después de 5s: {orden_ejecutada.status} ---")
 
-            if orden_ejecutada.status != 'filled':
+            # --- ¡LÓGICA MEJORADA! ---
+            
+            # CASO 1: ¡ÉXITO REAL! (El mercado está abierto y la orden se llenó)
+            if orden_ejecutada.status == 'filled':
+                print("--- ¡Orden 'filled'! El mercado está abierto. Calculando PNL... ---")
+                precio_compra = float(orden_ejecutada.filled_avg_price)
+                
+                # Cerramos la posición para calcular PNL
+                print(f"Cerrando posición para {simbolo} para calcular PNL...")
+                posicion_cerrada = self.api.close_position(simbolo)
+                print("Esperando 5 segundos para que la posición se cierre...")
+                time.sleep(5)
+                
+                # Obtenemos el PNL
+                actividades = self.api.get_activities(activity_types='FILL', direction='desc', page_size=10)
+                pnl_trade = 0.0
+                for act in actividades:
+                    if act.symbol == simbolo and act.side == 'sell':
+                        if hasattr(act, 'pl'):
+                            pnl_trade = float(act.pl)
+                            break
+                print(f"--- Trade real (paper) completado. PNL: ${pnl_trade} ---")
+
+            # CASO 2: ¡ÉXITO DE DEMO! (El mercado está cerrado, la orden fue 'accepted')
+            elif orden_ejecutada.status == 'accepted':
+                print("--- ¡Orden 'accepted'! (Mercado cerrado). ---")
+                print("--- Cancelando la orden y registrando un trade de demo (PNL $0.0) ---")
+                
+                # 1. Cancelamos la orden para que no se ejecute mañana
+                self.api.cancel_order(orden.id)
+                
+                # 2. Obtenemos el precio de la última cotización (solo para mostrar algo)
+                ultimo_trade = self.api.get_latest_trade(simbolo)
+                precio_compra = ultimo_trade.p
+                pnl_trade = 0.0 # Es una demo, no hay PNL
+                
+                print(f"--- Trade de demo (mercado cerrado) registrado. ---")
+
+            # CASO 3: ¡FALLO! (Como el 'new' de Crypto)
+            else:
                 print(f"La orden no se completó (status: {orden_ejecutada.status}).")
                 if orden_ejecutada.status == 'new':
                     self.api.cancel_order(orden.id)
                     print("--- Orden 'new' cancelada. ---")
                 raise Exception("La orden no se completó a tiempo.")
 
-            precio_compra = float(orden_ejecutada.filled_avg_price)
-            
-            # 4. ¡Cerramos la posición inmediatamente para saber el PNL!
-            print(f"Cerrando posición para {simbolo} para calcular PNL...")
-            posicion_cerrada = self.api.close_position(simbolo)
-            
-            # 5. Esperamos a que se cierre
-            print("Esperando 5 segundos para que la posición se cierre...")
-            time.sleep(5)
-            
-            # 6. Obtenemos el PNL de la posición cerrada
-            actividades = self.api.get_activities(activity_types='FILL', direction='desc', page_size=10)
-            
-            pnl_trade = 0.0
-            for act in actividades:
-                if act.symbol == simbolo and act.side == 'sell': # Buscamos nuestro 'sell'
-                    if hasattr(act, 'pl'): # pl = Profit/Loss
-                        pnl_trade = float(act.pl)
-                        break # Encontramos el PNL de nuestro trade
-            
-            if pnl_trade == 0.0:
-                 print("No se pudo determinar el PNL inmediato, se registrará como 0.0")
+            # --- FIN DE LÓGICA MEJORADA ---
 
-            print(f"--- Trade real (paper) completado. PNL: ${pnl_trade} ---")
-
-            # 7. Creamos el registro para Firebase
+            # 7. Creamos el registro para Firebase (para los casos 1 y 2)
             trade_id = str(uuid.uuid4()) # ID único
             trade_data = {
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
