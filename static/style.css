@@ -128,3 +128,24 @@ body {
     top: 50%;
     transform: translateY(-50%);
 }
+/* static/style.css */
+body {
+    background-color: #111827; /* bg-gray-900 de Tailwind */
+    color: #f3f4f6; /* text-gray-100 */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Scrollbar personalizado para navegadores Webkit (Chrome, Safari) */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #1f2937; 
+}
+::-webkit-scrollbar-thumb {
+    background: #4b5563; 
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #6b7280; 
+}
