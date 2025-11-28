@@ -1,151 +1,125 @@
-/* static/style.css (CORREGIDO - MODO OSCURO PRO) */
+/* static/style.css - DISEÑO PRO TRADING */
 
-/*
-   Forzamos el fondo principal a ser muy oscuro,
-   para que las 'cards' de Bootstrap (que son un poco más claras) resalten.
-*/
+:root {
+    --bg-darkest: #0b0e11;   /* Fondo principal */
+    --bg-card: #1e2329;      /* Fondo de tarjetas */
+    --bg-hover: #2b3139;     /* Hover en listas */
+    --text-primary: #eaecef; /* Blanco no puro */
+    --text-secondary: #848e9c; /* Gris para etiquetas */
+    --accent-green: #0ecb81; /* Ganancia / On */
+    --accent-red: #f6465d;   /* Pérdida / Off */
+    --accent-blue: #3d5afe;  /* Botones principales */
+    --gold: #f0b90b;         /* Detalles */
+}
+
 body {
-    background-color: #0d1117 !important; /* Negro de GitHub */
+    background-color: var(--bg-darkest) !important;
+    color: var(--text-primary);
+    font-family: 'Inter', 'Segoe UI', sans-serif; /* Fuente moderna */
 }
 
-/* Estilo para los iconos dentro de los formularios */
-.input-group-text {
-    width: 42px;
-    justify-content: center;
+/* --- NAVBAR --- */
+.navbar {
+    background-color: #181a20 !important;
+    border-bottom: 1px solid #2b3139;
 }
 
-/* --- ESTILOS DEL DASHBOARD --- */
-
-.card-icon {
-    font-size: 3rem;
-    opacity: 0.1;
-    position: absolute;
-    right: 20px;
-    top: 25px;
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
-/* Punto de estado */
-.status-dot {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
+/* --- TARJETAS (CARDS) --- */
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid #2b3139;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.card-header {
+    background-color: transparent;
+    border-bottom: 1px solid #2b3139;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 1rem 1.25rem;
+}
+
+/* --- TEXTOS Y COLORES --- */
+.text-muted { color: var(--text-secondary) !important; }
+
+/* Botones personalizados */
+.btn-primary {
+    background-color: var(--gold);
+    color: #000;
+    border: none;
+    font-weight: 600;
+}
+.btn-primary:hover { background-color: #dcb318; color: #000; }
+
+.btn-success-custom {
+    background-color: var(--accent-green);
+    color: #fff;
+    border: none;
+}
+
+.btn-danger-custom {
+    background-color: var(--accent-red);
+    color: #fff;
+    border: none;
+}
+
+/* --- DASHBOARD ELEMENTS --- */
+
+/* Indicador de estado animado */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: rgba(43, 49, 57, 0.5);
+    border: 1px solid #2b3139;
+}
+
+.dot {
+    height: 8px;
+    width: 8px;
     border-radius: 50%;
     margin-right: 8px;
+    display: inline-block;
+}
+
+.dot.active {
+    background-color: var(--accent-green);
+    box-shadow: 0 0 8px var(--accent-green);
     animation: pulse 2s infinite;
 }
 
-.status-dot.active {
-    background-color: #28a745; /* Verde */
-}
-
-.status-dot.inactive {
-    background-color: #dc3545; /* Rojo */
-    animation: none;
+.dot.inactive {
+    background-color: var(--accent-red);
 }
 
 @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
 }
 
-/* --- ESTILOS DE ESTADÍSTICAS (Rendimiento) --- */
+/* Grilla de métricas pequeñas */
+.metric-box {
+    background: rgba(0,0,0,0.2);
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid #2b3139;
+}
+.metric-label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; }
+.metric-value { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
 
-/* Las .stat-card son personalizadas, así que SÍ 
-   tenemos que darles un fondo oscuro
-*/
-.stat-card {
-    border-left: 5px solid var(--bs-primary);
-    padding: 1.25rem;
-    background-color: #212529; /* Color de card oscuro estándar */
-    position: relative;
-}
-
-.stat-card.positive {
-    border-left-color: var(--bs-success);
-}
-.stat-card.negative {
-    border-left-color: var(--bs-danger);
-}
-
-.stat-card-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #adb5bd; /* texto gris claro */
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-}
-
-.stat-card-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #f8f9fa; /* texto blanco */
-}
-
-.stat-card-icon {
-    font-size: 3rem;
-    opacity: 0.05;
-    position: absolute;
-    right: 1.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-}
-
-.stat-card {
-    border-left: 5px solid var(--bs-primary);
-    padding: 1.25rem;
-    background-color: #212529; /* Color de card oscuro estándar */
-    position: relative;
-    border-radius: .375rem; /* Bootstrap 5 usa .375rem */
-}
-
-.stat-card.positive {
-    border-left-color: var(--bs-success);
-}
-.stat-card.negative {
-    border-left-color: var(--bs-danger);
-}
-
-.stat-card-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #adb5bd; /* texto gris claro */
-    text-transform: uppercase;
-    margin-bottom: 0.5rem;
-}
-
-.stat-card-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #f8f9fa; /* texto blanco */
-}
-
-.stat-card-icon {
-    font-size: 3rem;
-    opacity: 0.05;
-    position: absolute;
-    right: 1.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-}
-/* static/style.css */
-body {
-    background-color: #111827; /* bg-gray-900 de Tailwind */
-    color: #f3f4f6; /* text-gray-100 */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Scrollbar personalizado para navegadores Webkit (Chrome, Safari) */
-::-webkit-scrollbar {
-    width: 8px;
-}
-::-webkit-scrollbar-track {
-    background: #1f2937; 
-}
-::-webkit-scrollbar-thumb {
-    background: #4b5563; 
-    border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #6b7280; 
-}
+/* Scrollbar bonito */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-darkest); }
+::-webkit-scrollbar-thumb { background: #474d57; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #848e9c; }

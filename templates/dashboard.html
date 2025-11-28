@@ -1,120 +1,115 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Wallet Trainer{% endblock %}
+{% block title %}Terminal - Wallet Trainer{% endblock %}
 
 {% block content %}
 
-<!-- Mensaje de Bienvenida -->
-<div class="mb-4">
-    <h1 class="display-5 fw-bold text-white">Bienvenido, {{ profile.username }}</h1>
-    <p class="fs-4 text-white-50">Este es tu panel de control. ¿Listo para operar?</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-white mb-0">Panel de Control</h2>
+        <p class="text-secondary mb-0">Bienvenido, <span class="text-warning">{{ profile.username }}</span></p>
+    </div>
+    <a href="{{ url_for('bot_settings') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-gear-fill"></i> Configuración
+    </a>
 </div>
 
 <div class="row g-4">
     
-    <!-- Columna Izquierda (Control y Mercado) -->
-    <div class="col-lg-8">
-        
-        <!-- Tarjeta: Control del Bot -->
-        <div class="card bg-dark text-white shadow-sm mb-4 border-secondary">
-            <div class="card-header bg-secondary-subtle text-white-50 fw-bold">
-                <i class="bi bi-robot"></i>
-                Control del Bot
+    <div class="col-lg-9">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-activity text-warning me-2"></i>Mercado en Vivo: {{ settings.activo|replace('_', ' ')|upper }}</span>
+                <span class="badge bg-dark border border-secondary text-secondary">1D Timeframe</span>
             </div>
-            <div class="card-body p-4">
-                <p class="card-text text-white-50">Activa o desactiva tu estrategia automatizada.</p>
-                <div class="row mb-3">
+            <div class="card-body p-0">
+                <div id="tv-mini-chart-widget-container" style="height: 500px; width: 100%; border-radius: 0 0 8px 8px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-cpu"></i> Motor de Trading
+            </div>
+            <div class="card-body text-center">
+                
+                <div class="mb-3">
+                    <span class="d-block text-secondary small mb-1">ESTADO ACTUAL</span>
+                    {% if settings.isActive %}
+                        <div class="status-indicator">
+                            <span class="dot active"></span> Ejecutando
+                        </div>
+                    {% else %}
+                        <div class="status-indicator">
+                            <span class="dot inactive"></span> Detenido
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="row g-2 mb-4">
                     <div class="col-6">
-                        <span class="text-white-50">Estado Actual:</span>
-                        {% if settings.isActive %}
-                            <strong class="text-success d-block fs-5">Activo</strong>
-                        {% else %}
-                            <strong class="text-danger d-block fs-5">Inactivo</strong>
-                        {% endif %}
+                        <div class="metric-box">
+                            <div class="metric-label">Activo</div>
+                            <div class="metric-value text-info">
+                                {{ settings.activo.split('_')[-1]|upper if '_' in settings.activo else 'BTC' }}
+                            </div>
+                        </div>
                     </div>
                     <div class="col-6">
-                        <span class="text-white-50">Estrategia Actual:</span>
-                        <strong class="text-primary-emphasis d-block fs-5">
-                            Operando en: 
-                            <span class="text-decoration-underline">{{ settings.activo|replace('_', ' ')|upper }}</span>
-                        </strong>
+                        <div class="metric-box">
+                            <div class="metric-label">Riesgo</div>
+                            
+                            {% set risk_class = 'success' if settings.riesgo == 'bajo' else 'warning' if settings.riesgo == 'medio' else 'danger' %}
+                            
+                            <div class="metric-value text-{{ risk_class }}">
+                                {{ settings.riesgo|upper }}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {% if settings.isActive %}
                     <form action="{{ url_for('deactivate_bot') }}" method="POST">
-                        <button type="submit" class="btn btn-danger btn-lg w-100">
-                            <i class="bi bi-stop-circle"></i> 
-                            Desactivar Bot
+                        <button type="submit" class="btn btn-danger-custom w-100 py-2 fw-bold shadow-sm">
+                            <i class="bi bi-power me-2"></i> APAGAR BOT
                         </button>
                     </form>
                 {% else %}
                     <form action="{{ url_for('activate_bot') }}" method="POST">
-                        <button type="submit" class="btn btn-success btn-lg w-100">
-                            <i class="bi bi-play-circle"></i> 
-                            Activar Bot
+                        <button type="submit" class="btn btn-success-custom w-100 py-2 fw-bold shadow-sm">
+                            <i class="bi bi-play-circle-fill me-2"></i> ENCENDER BOT
                         </button>
                     </form>
                 {% endif %}
-                <div class="form-text text-center mt-2 text-white-50">
-                    <small>El bot ejecutará operaciones según tu perfil de riesgo.</small>
-                </div>
             </div>
         </div>
 
-        <!-- Tarjeta: Mercado en Vivo -->
-        <div class="card bg-dark text-white shadow-sm border-secondary">
-            <div class="card-header bg-secondary-subtle text-white-50 fw-bold">
-                <i class="bi bi-graph-up"></i>
-                Mercado en Vivo
+        <div class="card">
+            <div class="card-header border-0 pb-0">
+                <i class="bi bi-robot text-primary"></i> Análisis IA
             </div>
-            <div class="card-body p-4">
-                <h5 class="card-title text-white mb-3">
-                    Gráfica en tiempo real: 
-                    <span class="text-info">{{ settings.activo|replace('_', ' ')|title }}</span>
-                </h5>
-                
-                <div id="tv-mini-chart-widget-container" style="height: 400px; width: 100%;">
-                    <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Columna Derecha (Análisis IA) -->
-    <div class="col-lg-4">
-        <div class="card bg-dark text-white shadow-sm border-secondary h-100">
-            <div class="card-header bg-secondary-subtle text-white-50 fw-bold">
-                <i class="bi bi-magic"></i>
-                Análisis IA (Simulado)
-            </div>
-            <div class="card-body p-4 d-flex flex-column">
-                <h5 class="card-title text-white">Visión de Mercado</h5>
-                
-                <p class="text-white-50 small mb-3">
-                    Nuestro algoritmo analiza tendencias, volumen y sentimiento para darte una ventaja competitiva.
+            <div class="card-body">
+                <p class="small text-secondary mb-3">
+                    Basado en tus parámetros de riesgo y el activo seleccionado.
                 </p>
+                
+                <div class="p-3 rounded bg-dark border border-secondary mb-3">
+                    <h6 class="text-white mb-1"><i class="bi bi-chat-square-quote-fill me-2 text-warning"></i>Sugerencia:</h6>
+                    <p class="mb-0 small fst-italic text-light">
+                        "{{ ai_snippet if ai_snippet else 'Análisis pendiente...' }}"
+                    </p>
+                </div>
 
-                <div class="bg-black bg-opacity-25 p-3 rounded mb-3 border border-secondary">
-                    <small class="text-muted d-block mb-1">Perfil de Riesgo:</small>
-                    <strong class="text-{{ 'success' if settings.riesgo == 'bajo' else 'warning' if settings.riesgo == 'medio' else 'danger' }}">
-                        {{ settings.riesgo | upper }}
-                    </strong>
-                </div>
-                
-                <p class="text-white-50 small">
-                    ¿Quieres saber qué opina la IA sobre <strong>{{ settings.activo|replace('_', ' ')|title }}</strong> hoy?
-                </p>
-                
-                <div class="mt-auto"> 
-                    <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-info w-100">
-                        <i class="bi bi-search"></i> Ver Análisis Completo
-                    </a>
-                </div>
+                <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-primary btn-sm w-100">
+                    Ver Análisis Completo
+                </a>
             </div>
         </div>
+
     </div>
-    
 </div>
 
 {% endblock %}
@@ -123,48 +118,61 @@
 <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 <script type="text/javascript">
     
-    // Función mejorada para soportar los nuevos activos
-    function getTradingViewSymbol(assetName) {
-        if (!assetName) return "BINANCE:BTCUSD";
+    // --- SOLUCIÓN DEL ERROR ---
+    // Usamos comillas "" por fuera para que Javascript no llore,
+    // y usamos 'default' por si la base de datos no trae el dato.
+    const currentAsset = "{{ settings.activo if settings and settings.activo else 'crypto_btc_usd' }}";
+    
+    // Debug: Muestra en la consola (F12) qué valor llegó realmente
+    console.log("Activo actual recibido:", currentAsset);
 
-        // Criptos
-        if (assetName.includes("crypto_btc")) return "BINANCE:BTCUSD";
-        if (assetName.includes("crypto_eth")) return "BINANCE:ETHUSD";
-        if (assetName.includes("crypto_sol")) return "BINANCE:SOLUSD";
-        if (assetName.includes("crypto_ada")) return "BINANCE:ADAUSD";
+    // Función para mapear tus IDs de activos a símbolos de TradingView
+    function getTradingViewSymbol(assetName) {
+        if (!assetName) return "BINANCE:BTCUSDT";
         
-        // Forex
-        if (assetName.includes("forex_eur_usd")) return "FX:EURUSD";
-        if (assetName.includes("forex_usd_jpy")) return "FX:USDJPY";
-        if (assetName.includes("forex_gbp_usd")) return "FX:GBPUSD";
+        // Convertimos a minúsculas para evitar errores
+        const lower = assetName.toLowerCase();
+
+        // Mapeo de Criptos
+        if (lower.includes("btc")) return "BINANCE:BTCUSDT";
+        if (lower.includes("eth")) return "BINANCE:ETHUSDT";
+        if (lower.includes("sol")) return "BINANCE:SOLUSDT";
+        if (lower.includes("ada")) return "BINANCE:ADAUSDT";
         
-        // Stocks / Indices
-        if (assetName.includes("stock_tsla")) return "NASDAQ:TSLA";
-        if (assetName.includes("stock_aapl")) return "NASDAQ:AAPL";
-        if (assetName.includes("index_spx")) return "SP:SPX";
-        if (assetName.includes("index_ndx")) return "NASDAQ:NDX";
+        // Mapeo de Forex
+        if (lower.includes("eur")) return "FX:EURUSD";
+        if (lower.includes("jpy")) return "FX:USDJPY";
+        if (lower.includes("gbp")) return "FX:GBPUSD";
         
-        // Commodities
-        if (assetName.includes("commodity_oro")) return "OANDA:XAUUSD";
+        // Mapeo de Acciones
+        if (lower.includes("tsla")) return "NASDAQ:TSLA";
+        if (lower.includes("aapl")) return "NASDAQ:AAPL";
         
-        return "BINANCE:BTCUSD";
+        // Indices y Commodities
+        if (lower.includes("spx")) return "OANDA:SPX500USD";
+        if (lower.includes("oro") || lower.includes("gold")) return "OANDA:XAUUSD";
+        
+        return "BINANCE:BTCUSDT"; // Valor por defecto si no encuentra coincidencia
     }
 
-    const currentAsset = {{ settings.activo | tojson }};
     const tvSymbol = getTradingViewSymbol(currentAsset);
 
+    // Inicializar Widget
     new TradingView.widget({
-      "width": "100%",
-      "height": 400,
+      "autosize": true,
       "symbol": tvSymbol,
       "interval": "D",
-      "timezone": "Etc/UTC",
+      "timezone": "America/New_York",
       "theme": "dark",
       "style": "1",
       "locale": "es",
+      "toolbar_bg": "#f1f3f6",
       "enable_publishing": false,
-      "allow_symbol_change": false,
-      "container_id": "tv-mini-chart-widget-container"
+      "hide_top_toolbar": false,
+      "hide_legend": false,
+      "save_image": false,
+      "container_id": "tv-mini-chart-widget-container",
+      "backgroundColor": "#1e2329"
     });
 </script>
 {% endblock %}
