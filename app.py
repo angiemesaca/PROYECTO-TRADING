@@ -29,6 +29,7 @@ def login():
         session['id_token'] = user['idToken'] 
         flash("Inicio de sesión exitoso", "success")
         return redirect(url_for('dashboard'))
+    
     else:
         flash("Correo o contraseña incorrectos", "danger")
         return redirect(url_for('home'))
