@@ -1,14 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, Response
 from viewmodels.main_viewmodel import MainViewModel
 import os # Para la clave secreta
-import time # ¡NUEVO! Para añadir el "freno"
+import time # Para añadir el "freno"
+import datetime # Para el reporte y fechas
 
-app = Flask(__name__, template_folder='app/templates', static_folder='app/static')
+# --- ¡CORRECCIÓN AQUÍ! ---
+# Quitamos template_folder='app/templates' y static_folder='app/static'
+# Al dejarlo vacío, Flask buscará automáticamente en las carpetas './templates' y './static'
+# que están en la raíz, que es donde realmente las tienes.
+app = Flask(__name__)
+
 app.secret_key = os.urandom(24) # Clave segura
 vm = MainViewModel()
-
-# --- ¡ELIMINADO! ---
-# Ya no necesitamos el scheduler, lo quitamos.
 
 @app.route('/')
 def home():
@@ -58,10 +61,28 @@ def dashboard():
     # Esta función obtiene los datos (incluyendo el 'settings' actualizado)
     data = vm.get_dashboard_data(user_id, token)
     
+    # Lógica para el snippet de IA en el dashboard
+    selected_asset_id = data['settings'].get('activo', 'crypto_btc_usd')
+    try:
+        if "_" in selected_asset_id:
+            asset_name = selected_asset_id.split('_')[1].upper()
+        else:
+            asset_name = selected_asset_id
+    except:
+        asset_name = "Activo"
+    
+    ai_snippet = ""
+    try:
+        ai_snippet = vm.get_ai_analysis(user_id, token, asset_name)
+    except Exception as e:
+        print(f"Error dashboard IA: {e}")
+        ai_snippet = "No disponible."
+
     return render_template(
         'dashboard.html', 
         profile=data['profile'], 
-        settings=data['settings']
+        settings=data['settings'],
+        ai_snippet=ai_snippet
     )
 
 
@@ -83,7 +104,7 @@ def profile():
     if request.method == 'POST':
         data = {
             "username": request.form['username'],
-            "risk": request.form['risk'],
+            "risk": request.form['risk'], # Asegúrate de que el formulario envíe 'risk' o mapealo
             "experience": request.form['experience'],
             "selected_market": request.form['market']
         }
@@ -227,6 +248,32 @@ def clear_history():
         flash("Error al borrar el historial.", "danger")
     return redirect(url_for('performance'))
 
+# --- RUTA DE DESCARGA CSV ---
+@app.route('/download_report')
+def download_report():
+    if 'user_id' not in session:
+        return redirect(url_for('home'))
+    
+    user_id = session['user_id']
+    token = session['id_token']
+    
+    # 1. Obtener el contenido CSV del ViewModel
+    # (Asegúrate de que vm.generate_csv_report exista en tu MainViewModel)
+    try:
+        csv_content = vm.generate_csv_report(user_id, token)
+        
+        # 2. Devolverlo como un archivo descargable
+        return Response(
+            csv_content,
+            mimetype="text/csv",
+            headers={"Content-disposition": "attachment; filename=reporte_trading.csv"}
+        )
+    except AttributeError:
+        # Si no has actualizado el ViewModel con la función CSV todavía
+        flash("Función de descarga no disponible aún.", "warning")
+        return redirect(url_for('performance'))
+
+
 @app.route('/change_password', methods=['POST'])
 def change_password():
     if 'user_id' not in session: return redirect(url_for('home'))
@@ -236,7 +283,6 @@ def change_password():
         return redirect(url_for('logout'))
     else:
         flash("Error al cambiar la contraseña.", "danger")
-        # ¡Este es el error que arreglamos antes!
         return redirect(url_for('profile'))
 
 @app.route('/change_email', methods=['POST'])
@@ -284,8 +330,10 @@ def get_ai_suggestion():
     
     # Obtenemos el activo del JSON que nos envía el Javascript
     data = request.get_json()
-    asset_name = data.get('asset')
-    
+    asset_name = data.get('asset_name') # Ojo: en tu JS puede ser 'asset_name' o 'asset'
+    if not asset_name:
+        asset_name = data.get('asset')
+
     if not asset_name:
         return jsonify({"error": "Activo no especificado"}), 400
     
@@ -295,7 +343,7 @@ def get_ai_suggestion():
     if "Error" in analysis:
         return jsonify({"error": analysis}), 500
     
-    return jsonify({"analysis": analysis})
+    return jsonify({"suggestion": analysis}) # En tu JS esperas 'suggestion'
 
 @app.route('/api_keys', methods=['GET', 'POST'])
 def api_keys():
