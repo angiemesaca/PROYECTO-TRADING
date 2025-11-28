@@ -82,5 +82,5 @@ class ActivoFactory:
             else:
                 return CommodityActivo("Oro (XAU)", asset_code, riesgo)
         except Exception:
-            # Fallback por seguridad
+            # Fallback por seguridad por si acaso
             return CriptoActivo("ACTIVO", asset_code, riesgo)
