@@ -22,7 +22,7 @@
                 Control del Bot
             </div>
             <div class="card-body p-4">
-                <p class="card-text text-white-50">Activa o desactiva tu estrategia.</p>
+                <p class="card-text text-white-50">Activa o desactiva tu estrategia automatizada.</p>
                 <div class="row mb-3">
                     <div class="col-6">
                         <span class="text-white-50">Estado Actual:</span>
@@ -35,17 +35,12 @@
                     <div class="col-6">
                         <span class="text-white-50">Estrategia Actual:</span>
                         <strong class="text-primary-emphasis d-block fs-5">
-                            Buscando operaciones en 
-                            <span class="text-decoration-underline">{{ settings.activo.split('_')[-2] | upper }}/{{ settings.activo.split('_')[-1] | upper }}</span>
+                            Operando en: 
+                            <span class="text-decoration-underline">{{ settings.activo|replace('_', ' ')|upper }}</span>
                         </strong>
                     </div>
                 </div>
 
-                <!-- 
-                  ¡BOTONES ARREGLADOS!
-                  Ahora están dentro de formularios y SÍ funcionan.
-                  (Ya no están "disabled").
-                -->
                 {% if settings.isActive %}
                     <form action="{{ url_for('deactivate_bot') }}" method="POST">
                         <button type="submit" class="btn btn-danger btn-lg w-100">
@@ -61,8 +56,8 @@
                         </button>
                     </form>
                 {% endif %}
-                <div class="form-text text-center mt-2">
-                    (En Modo Backtest, esto solo afecta las sugerencias de la IA)
+                <div class="form-text text-center mt-2 text-white-50">
+                    <small>El bot ejecutará operaciones según tu perfil de riesgo.</small>
                 </div>
             </div>
         </div>
@@ -74,9 +69,9 @@
                 Mercado en Vivo
             </div>
             <div class="card-body p-4">
-                <h5 class="card-title text-white">
-                    Gráfica del activo seleccionado: 
-                    <span class="text-primary-emphasis">{{ settings.activo.split('_')[-2] | upper }}/{{ settings.activo.split('_')[-1] | upper }}</span>
+                <h5 class="card-title text-white mb-3">
+                    Gráfica en tiempo real: 
+                    <span class="text-info">{{ settings.activo|replace('_', ' ')|title }}</span>
                 </h5>
                 
                 <div id="tv-mini-chart-widget-container" style="height: 400px; width: 100%;">
@@ -94,22 +89,26 @@
                 Análisis IA (Simulado)
             </div>
             <div class="card-body p-4 d-flex flex-column">
-                <h5 class="card-title text-white">Sugerencia rápida para tu activo</h5>
+                <h5 class="card-title text-white">Visión de Mercado</h5>
                 
-                <!-- 
-                  ¡PERFIL ARREGLADO!
-                  Cambiamos 'profile.risk' por 'settings.riesgo'
-                -->
-                <p class="text-white-50 small">
-                    **Análisis de Activo (Simulado):** Nuestros modelos detectan una fuerte acumulación de volumen en el activo seleccionado. El sentimiento en redes es positivo. Alta probabilidad de ruptura alcista.
+                <p class="text-white-50 small mb-3">
+                    Nuestro algoritmo analiza tendencias, volumen y sentimiento para darte una ventaja competitiva.
                 </p>
+
+                <div class="bg-black bg-opacity-25 p-3 rounded mb-3 border border-secondary">
+                    <small class="text-muted d-block mb-1">Perfil de Riesgo:</small>
+                    <strong class="text-{{ 'success' if settings.riesgo == 'bajo' else 'warning' if settings.riesgo == 'medio' else 'danger' }}">
+                        {{ settings.riesgo | upper }}
+                    </strong>
+                </div>
+                
                 <p class="text-white-50 small">
-                    **Sugerencia (Perfil {{ settings.riesgo | capitalize }}):** Basado en tu perfil, la estrategia actual es adecuada. Considera asegurar ganancias en la próxima resistencia.
+                    ¿Quieres saber qué opina la IA sobre <strong>{{ settings.activo|replace('_', ' ')|title }}</strong> hoy?
                 </p>
                 
-                <div class="mt-auto"> <!-- Empuja el botón al fondo -->
-                    <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-primary w-100">
-                        <i class="bi bi-search"></i> Ver análisis completo
+                <div class="mt-auto"> 
+                    <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-info w-100">
+                        <i class="bi bi-search"></i> Ver Análisis Completo
                     </a>
                 </div>
             </div>
@@ -120,41 +119,47 @@
 
 {% endblock %}
 
-
-<!-- 
-  Scripts del Gráfico
--->
 {% block page_scripts %}
 <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 <script type="text/javascript">
     
-    // 1. Esta función traduce nuestro "activo" (ej: crypto_btc_usd)
-    //    a un "símbolo" que TradingView entiende (ej: BINANCE:BTCUSD)
+    // Función mejorada para soportar los nuevos activos
     function getTradingViewSymbol(assetName) {
-        if (!assetName) return "BINANCE:BTCUSD"; // Default
+        if (!assetName) return "BINANCE:BTCUSD";
 
-        if (assetName.includes("crypto_btc_usd")) return "BINANCE:BTCUSD";
-        if (assetName.includes("crypto_eth_usd")) return "BINANCE:ETHUSD";
-        if (assetName.includes("crypto_sol_usd")) return "BINANCE:SOLUSD";
-        if (assetName.includes("forex_eur_usd")) return "FX:EURUSD";
-        if (assetName.includes("commodity_oro")) return "OANDA:XAUUSD";
-        if (assetName.includes("index_spx_500")) return "SP:SPX";
+        // Criptos
+        if (assetName.includes("crypto_btc")) return "BINANCE:BTCUSD";
+        if (assetName.includes("crypto_eth")) return "BINANCE:ETHUSD";
+        if (assetName.includes("crypto_sol")) return "BINANCE:SOLUSD";
+        if (assetName.includes("crypto_ada")) return "BINANCE:ADAUSD";
         
-        return "BINANCE:BTCUSD"; // Default si no lo encuentra
+        // Forex
+        if (assetName.includes("forex_eur_usd")) return "FX:EURUSD";
+        if (assetName.includes("forex_usd_jpy")) return "FX:USDJPY";
+        if (assetName.includes("forex_gbp_usd")) return "FX:GBPUSD";
+        
+        // Stocks / Indices
+        if (assetName.includes("stock_tsla")) return "NASDAQ:TSLA";
+        if (assetName.includes("stock_aapl")) return "NASDAQ:AAPL";
+        if (assetName.includes("index_spx")) return "SP:SPX";
+        if (assetName.includes("index_ndx")) return "NASDAQ:NDX";
+        
+        // Commodities
+        if (assetName.includes("commodity_oro")) return "OANDA:XAUUSD";
+        
+        return "BINANCE:BTCUSD";
     }
 
-    // 2. Obtenemos el activo actual de tus Ajustes
     const currentAsset = {{ settings.activo | tojson }};
     const tvSymbol = getTradingViewSymbol(currentAsset);
 
-    // 3. Cargamos el widget de TradingView
     new TradingView.widget({
       "width": "100%",
       "height": 400,
-      "symbol": tvSymbol, // ¡Aquí usamos el símbolo dinámico!
+      "symbol": tvSymbol,
       "interval": "D",
       "timezone": "Etc/UTC",
-      "theme": "dark", // Tema oscuro
+      "theme": "dark",
       "style": "1",
       "locale": "es",
       "enable_publishing": false,
@@ -163,15 +168,3 @@
     });
 </script>
 {% endblock %}
-```
-
----
-
-### Tu Tarea
-
-1.  **Reemplaza** tu `templates/dashboard.html` con este nuevo archivo.
-2.  **Sube los cambios a GitHub:**
-    ```bash
-    git add templates/dashboard.html
-    git commit -m "Arregla el perfil de riesgo del dashboard y habilita los botones del bot"
-    git push origin main

@@ -3,7 +3,7 @@ from viewmodels.main_viewmodel import MainViewModel
 import os # Para la clave secreta
 import time # ¡NUEVO! Para añadir el "freno"
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='app/templates', static_folder='app/static')
 app.secret_key = os.urandom(24) # Clave segura
 vm = MainViewModel()
 

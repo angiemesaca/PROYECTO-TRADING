@@ -10,7 +10,7 @@
                 
                 <h2 class="text-center fw-bold mb-4">
                     <i class="bi bi-sliders text-primary"></i>
-                    Ajustes de Estrategia
+                    Configuración del Bot
                 </h2>
 
                 <form action="{{ url_for('bot_settings') }}" method="post">
@@ -18,58 +18,69 @@
                     <div class="row g-3 mb-3">
                         
                         <div class="col-md-6">
-                            <label for="riesgo" class="form-label fw-bold">Nivel de Riesgo</label>
+                            <label for="riesgo" class="form-label fw-bold text-info">Perfil de Riesgo</label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-shield-check"></i></span>
-                                <select class="form-select" name="riesgo" id="riesgo">
-                                    <option value="bajo" {% if settings.riesgo == 'bajo' %}selected{% endif %}>Bajo (Conservador)</option>
-                                    <option value="medio" {% if settings.riesgo == 'medio' %}selected{% endif %}>Medio (Balanceado)</option>
-                                    <option value="alto" {% if settings.riesgo == 'alto' %}selected{% endif %}>Alto (Agresivo)</option>
+                                <span class="input-group-text bg-secondary border-secondary text-white"><i class="bi bi-shield-check"></i></span>
+                                <select class="form-select bg-dark text-white border-secondary" name="riesgo" id="riesgo">
+                                    <option value="bajo" {% if settings.riesgo == 'bajo' %}selected{% endif %}>🟢 Bajo (Conservador)</option>
+                                    <option value="medio" {% if settings.riesgo == 'medio' %}selected{% endif %}>🟡 Medio (Balanceado)</option>
+                                    <option value="alto" {% if settings.riesgo == 'alto' %}selected{% endif %}>🔴 Alto (Scalping/Agresivo)</option>
                                 </select>
                             </div>
                         </div>
 
                         <div class="col-md-6">
-                            <label for="activo" class="form-label fw-bold">Activo a Operar</label>
+                            <label for="activo" class="form-label fw-bold text-info">Activo Financiero</label>
                             <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-currency-exchange"></i></span>
-                                <select class="form-select" name="activo" id="activo">
-                                    <option value="crypto_btc_usd" {% if settings.activo == 'crypto_btc_usd' %}selected{% endif %}>Cripto: BTC/USD</option>
-                                    <option value="crypto_eth_usd" {% if settings.activo == 'crypto_eth_usd' %}selected{% endif %}>Cripto: ETH/USD</option>
-                                    <option value="crypto_sol_usd" {% if settings.activo == 'crypto_sol_usd' %}selected{% endif %}>Cripto: SOL/USD</option>
-                                    <option value="forex_eur_usd" {% if settings.activo == 'forex_eur_usd' %}selected{% endif %}>Forex: EUR/USD</option>
-                                    <option value="commodity_oro" {% if settings.activo == 'commodity_oro' %}selected{% endif %}>Commodity: Oro (XAU)</option>
-                                    <option value="index_spx_500" {% if settings.activo == 'index_spx_500' %}selected{% endif %}>Índice: S&P 500</option>
+                                <span class="input-group-text bg-secondary border-secondary text-white"><i class="bi bi-currency-exchange"></i></span>
+                                <select class="form-select bg-dark text-white border-secondary" name="activo" id="activo">
+                                    <optgroup label="Criptomonedas">
+                                        <option value="crypto_btc_usd" {% if settings.activo == 'crypto_btc_usd' %}selected{% endif %}>Bitcoin (BTC/USD)</option>
+                                        <option value="crypto_eth_usd" {% if settings.activo == 'crypto_eth_usd' %}selected{% endif %}>Ethereum (ETH/USD)</option>
+                                        <option value="crypto_sol_usd" {% if settings.activo == 'crypto_sol_usd' %}selected{% endif %}>Solana (SOL/USD)</option>
+                                        <option value="crypto_ada_usd" {% if settings.activo == 'crypto_ada_usd' %}selected{% endif %}>Cardano (ADA/USD)</option>
+                                    </optgroup>
+                                    <optgroup label="Mercado Forex">
+                                        <option value="forex_eur_usd" {% if settings.activo == 'forex_eur_usd' %}selected{% endif %}>Euro (EUR/USD)</option>
+                                        <option value="forex_usd_jpy" {% if settings.activo == 'forex_usd_jpy' %}selected{% endif %}>Yen (USD/JPY)</option>
+                                        <option value="forex_gbp_usd" {% if settings.activo == 'forex_gbp_usd' %}selected{% endif %}>Libra (GBP/USD)</option>
+                                    </optgroup>
+                                    <optgroup label="Acciones & Índices">
+                                        <option value="stock_tsla_usd" {% if settings.activo == 'stock_tsla_usd' %}selected{% endif %}>Tesla (TSLA)</option>
+                                        <option value="stock_aapl_usd" {% if settings.activo == 'stock_aapl_usd' %}selected{% endif %}>Apple (AAPL)</option>
+                                        <option value="index_spx_500" {% if settings.activo == 'index_spx_500' %}selected{% endif %}>S&P 500</option>
+                                        <option value="index_ndx_100" {% if settings.activo == 'index_ndx_100' %}selected{% endif %}>Nasdaq 100</option>
+                                    </optgroup>
+                                    <optgroup label="Commodities">
+                                        <option value="commodity_oro" {% if settings.activo == 'commodity_oro' %}selected{% endif %}>Oro (XAU/USD)</option>
+                                    </optgroup>
                                 </select>
                             </div>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="indicadores" class="form-label fw-bold">Indicadores Técnicos</label>
+                        <label for="indicadores" class="form-label fw-bold text-info">Indicadores Técnicos</label>
                         <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-graph-up-arrow"></i></span>
-                            <input type="text" class="form-control" name="indicadores" id="indicadores" value="{{ settings.indicadores }}" required>
+                            <span class="input-group-text bg-secondary border-secondary text-white"><i class="bi bi-graph-up-arrow"></i></span>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" name="indicadores" id="indicadores" value="{{ settings.indicadores }}" required>
                         </div>
-                        <div class="form-text">
-                            Separa tus indicadores con comas (Ej: RSI, MACD, EMA).
+                        <div class="form-text text-white-50">
+                            Ej: RSI (14), EMA (200), Bandas de Bollinger.
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label for="horario" class="form-label fw-bold">Horario de Operación (UTC)</label>
+                        <label for="horario" class="form-label fw-bold text-info">Horario de Trading (UTC)</label>
                         <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-clock-history"></i></span>
-                            <input type="text" class="form-control" name="horario" id="horario" value="{{ settings.horario }}" required>
-                        </div>
-                        <div class="form-text">
-                            Usa formato 24h (Ej: 09:00-17:00).
+                            <span class="input-group-text bg-secondary border-secondary text-white"><i class="bi bi-clock-history"></i></span>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" name="horario" id="horario" value="{{ settings.horario }}" required>
                         </div>
                     </div>
 
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-save"></i> Guardar Cambios
+                        <button type="submit" class="btn btn-primary btn-lg shadow-lg">
+                            <i class="bi bi-save"></i> Guardar Configuración
                         </button>
                     </div>
 
