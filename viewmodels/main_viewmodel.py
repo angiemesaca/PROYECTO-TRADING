@@ -77,7 +77,7 @@ class MainViewModel:
             return 0.0
 
     # ==============================================================================
-    # 2. GESTIÓN DE USUARIOS Y PERFIL (CON CORRECCIÓN DE SALDO)
+    # 2. GESTIÓN DE USUARIOS Y SALDO (ESTRICTO)
     # ==============================================================================
 
     def login(self, email, password):
@@ -113,30 +113,51 @@ class MainViewModel:
             return user
         return None
 
+    # --- ⚖️ CONCILIACIÓN BANCARIA (EL ARREGLO MÁGICO) ---
+    def _reconcile_balance(self, user_id, token):
+        """
+        Recalcula el saldo EXACTO basándose en el historial de transacciones.
+        Saldo = 100,000 (Base) - Compras + Ventas.
+        Esto elimina cualquier error de 'dinero infinito' o corrupción de datos.
+        """
+        trade_log = self.bot_service.get_trade_log(user_id, token)
+        
+        saldo_calculado = 100000.0 # Siempre empezamos con 100k de base
+        
+        if trade_log:
+            trades = trade_log.values() if isinstance(trade_log, dict) else []
+            for trade in trades:
+                tipo = trade.get('tipo')
+                # Aseguramos que sea float
+                total = float(trade.get('total_operacion', 0))
+                
+                if tipo == 'COMPRA':
+                    saldo_calculado -= total
+                elif tipo == 'VENTA':
+                    saldo_calculado += total
+        
+        # Guardamos el saldo REAL calculado en la base de datos para sincronizar
+        self.update_user_profile(user_id, {"saldo_virtual": saldo_calculado}, token)
+        return saldo_calculado
+
     def get_user_profile(self, user_id, token):
-        """Obtiene el perfil y CORRIGE el saldo si es antiguo."""
         profile = self.db_service.get_user_profile(user_id, token)
         
-        if profile:
-            # Leemos el saldo actual, si no existe asumimos 0
-            saldo_actual = float(profile.get('saldo_virtual', 0))
-            
-            # LÓGICA DE CORRECCIÓN:
-            # Si el saldo es menor o igual a 10,000 (el valor viejo por defecto),
-            # lo actualizamos a 100,000 y lo GUARDAMOS en la base de datos.
-            if saldo_actual <= 10000.0:
-                print(f"--- CORRIGIENDO SALDO ANTIGUO ({saldo_actual}) A 100,000 ---")
-                profile['saldo_virtual'] = 100000.0
-                self.db_service.save_user_profile(user_id, profile, token)
-        else:
-            # Si por alguna razón no hay perfil, devolvemos uno temporal
-            profile = {"username": "Usuario", "saldo_virtual": 100000.0}
+        # Si no existe perfil, retornamos uno por defecto
+        if not profile:
+            return {"username": "Usuario", "saldo_virtual": 100000.0}
+        
+        # Si el campo de saldo no existe, lo creamos
+        if 'saldo_virtual' not in profile:
+            profile['saldo_virtual'] = 100000.0
+            self.db_service.save_user_profile(user_id, profile, token)
             
         return profile
 
     def update_user_profile(self, user_id, data, token):
         """Actualiza datos del perfil (incluyendo el saldo tras operar)."""
-        current_profile = self.get_user_profile(user_id, token)
+        current_profile = self.db_service.get_user_profile(user_id, token)
+        if not current_profile: current_profile = {}
         current_profile.update(data)
         return self.db_service.save_user_profile(user_id, current_profile, token)
 
@@ -147,7 +168,7 @@ class MainViewModel:
     def _calculate_holdings(self, user_id, token, target_symbol):
         """
         Calcula cuánto tienes realmente de un activo (Inventario).
-        Suma todas las compras y resta todas las ventas.
+        Suma todas las compras y resta todas las ventas del historial.
         """
         trade_log = self.bot_service.get_trade_log(user_id, token)
         if not trade_log: return 0.0
@@ -183,7 +204,6 @@ class MainViewModel:
             if quantity is None: quantity = 1.0
             
             # ¡IMPORTANTE! Usamos abs() para asegurar que el número sea positivo.
-            # Esto evita que alguien ponga "-50" para sumar saldo comprando.
             quantity = abs(float(quantity)) 
             
             if quantity == 0: 
@@ -192,9 +212,9 @@ class MainViewModel:
             # Calcular costo total de la operación
             total_value = current_price * quantity
             
-            # 3. OBTENER ESTADO ACTUAL DEL USUARIO
-            profile = self.get_user_profile(user_id, token)
-            current_balance = float(profile.get('saldo_virtual', 100000.0))
+            # 3. OBTENER SALDO REAL (RECONCILIADO)
+            # Llamamos a _reconcile_balance para asegurarnos de tener el dinero real
+            current_balance = self._reconcile_balance(user_id, token)
             
             symbol, _ = self._get_symbol_and_source(asset_id)
             nuevo_saldo = current_balance
@@ -233,7 +253,7 @@ class MainViewModel:
             }
             self.bot_service.record_trade(user_id, trade_record, token)
 
-            return True, f"Orden ejecutada: {action} {quantity} {symbol} a ${current_price:,.2f}", nuevo_saldo
+            return True, f"Orden ejecutada: {action} {quantity} {symbol}", nuevo_saldo
 
         except Exception as e:
             print(f"Error crítico en trading: {e}")
@@ -244,7 +264,7 @@ class MainViewModel:
         """Borra el historial y reinicia el saldo a 100k."""
         # 1. Borrar tabla de trades
         self.bot_service.clear_trade_log(user_id, token)
-        # 2. Restaurar saldo
+        # 2. Restaurar saldo a 100k exactos
         self.update_user_profile(user_id, {"saldo_virtual": 100000.0}, token)
         return True
 
@@ -253,10 +273,16 @@ class MainViewModel:
     # ==============================================================================
 
     def get_performance_data(self, user_id, token):
+        """
+        Calcula todo el portafolio: Costo promedio, PnL no realizado, Gráficas.
+        """
+        # Aseguramos que el saldo esté bien calculado antes de empezar
+        self._reconcile_balance(user_id, token)
+        
         trade_log = self.bot_service.get_trade_log(user_id, token)
         trade_list, labels_grafica, data_grafica = [], [], []
         
-        # Estructura: {'BTC/USD': {'qty': 0.5, 'total_cost': 25000.0}}
+        # Estructura para el portafolio: {'BTC/USD': {'qty': 0.5, 'total_cost': 25000.0}}
         holdings = {} 
         
         profile = self.get_user_profile(user_id, token)
@@ -269,6 +295,7 @@ class MainViewModel:
             for trade in sorted_trades:
                 trade_list.append(trade)
                 labels_grafica.append(trade.get('timestamp', '')[5:16]) 
+                # Graficamos la evolución del saldo en efectivo
                 data_grafica.append(trade.get('saldo_resultante', 0))
                 
                 # --- CÁLCULO DE INVENTARIO Y COSTO PROMEDIO ---
@@ -284,23 +311,25 @@ class MainViewModel:
                     holdings[asset]['qty'] += qty
                     holdings[asset]['total_cost'] += (qty * price)
                 elif tipo == 'VENTA':
-                    # Al vender, reducimos el costo proporcionalmente
+                    # Al vender, reducimos el costo total proporcionalmente
+                    # Esto mantiene el precio promedio de lo que queda igual
                     if holdings[asset]['qty'] > 0:
                         avg_price = holdings[asset]['total_cost'] / holdings[asset]['qty']
                         holdings[asset]['total_cost'] -= (qty * avg_price)
                     
                     holdings[asset]['qty'] -= qty
 
-        # Preparar datos para la vista
+        # Preparar datos para la vista (Gráfico de Dona y Tabla)
         portfolio_labels = ["Efectivo (USD)"]
         portfolio_data = [saldo_cash]
-        total_portfolio_value = saldo_cash
+        total_equity = saldo_cash # Valor total de la cuenta (Cash + Acciones)
         lista_posiciones = [] 
 
         for asset, data in holdings.items():
             qty = data['qty']
             cost_basis = data['total_cost']
             
+            # Solo mostramos activos donde tengas más de 0.00001 (para evitar residuos)
             if qty > 0.00001: 
                 try:
                     # 1. Obtener Precio Actual Real (Intento de API)
@@ -313,7 +342,7 @@ class MainViewModel:
                     elif "CIB" in asset: current_price = self.get_real_price("stock_bancolombia")
                     elif "AVAL" in asset: current_price = self.get_real_price("stock_aval")
                     
-                    # Fallback si la API falla: usamos el precio de costo
+                    # Fallback: si la API falla o no encuentra, usamos el precio de costo
                     if current_price == 0 and qty > 0: current_price = cost_basis / qty
                     if current_price == 0: current_price = 1 
                     
@@ -321,11 +350,11 @@ class MainViewModel:
                     valor_mercado = qty * current_price
                     precio_promedio_compra = cost_basis / qty
                     
-                    # 3. Calcular PnL de la posición (No realizado)
+                    # 3. Calcular PnL de la posición (Ganancia no realizada)
                     pnl_unrealized = valor_mercado - cost_basis
-                    pnl_percent = (pnl_unrealized / cost_basis) * 100 if cost_basis > 0 else 0
+                    pnl_percent = ((valor_mercado - cost_basis) / cost_basis) * 100 if cost_basis > 0 else 0
 
-                    total_portfolio_value += valor_mercado
+                    total_equity += valor_mercado
                     portfolio_labels.append(asset)
                     portfolio_data.append(round(valor_mercado, 2))
                     
@@ -340,12 +369,13 @@ class MainViewModel:
                 except Exception as e:
                     print(f"Error calculando posición {asset}: {e}")
 
-        ganancia_total = total_portfolio_value - 100000.0 
+        # Ganancia Total histórica = Valor Total Hoy - 100k Iniciales
+        ganancia_total = total_equity - 100000.0 
 
         stats = {
             "ganancia_total": round(ganancia_total, 2), 
             "total_trades": len(trade_list),
-            "equity": total_portfolio_value 
+            "equity": total_equity 
         }
         
         return {
@@ -359,27 +389,8 @@ class MainViewModel:
         }
 
     # ==============================================================================
-    # 5. DASHBOARD E IA
+    # 5. ANÁLISIS DE IA (HTML COMPLETO)
     # ==============================================================================
-
-    def get_dashboard_data(self, user_id, token):
-        try:
-            # Revisamos si el bot debe operar automáticamente
-            self.check_bot_execution(user_id, token)
-            
-            profile = self.get_user_profile(user_id, token)
-            settings = self.get_bot_settings_data(user_id, token)
-            
-            # Obtenemos precio actual para mostrar en el dashboard
-            current_price = self.get_real_price(settings.get('activo'))
-            settings['current_price'] = current_price
-            
-            return {"profile": profile, "settings": settings}
-        except: 
-            return {
-                "profile": {"username": "Usuario", "saldo_virtual": 100000.0}, 
-                "settings": {"activo": "crypto_btc_usd", "isActive": False}
-            }
 
     def get_ai_analysis(self, user_id, token, asset_name):
         try:
@@ -442,9 +453,23 @@ class MainViewModel:
             return f"Error generando análisis: {str(e)}"
 
     # ==============================================================================
-    # 6. FUNCIONES AUXILIARES
+    # 6. FUNCIONES AUXILIARES Y DASHBOARD
     # ==============================================================================
     
+    def get_dashboard_data(self, user_id, token):
+        try:
+            # Conciliamos saldo SIEMPRE al entrar para asegurar matemáticas correctas
+            self._reconcile_balance(user_id, token)
+            self.check_bot_execution(user_id, token)
+            
+            profile = self.get_user_profile(user_id, token)
+            settings = self.get_bot_settings_data(user_id, token)
+            settings['current_price'] = self.get_real_price(settings.get('activo'))
+            
+            return {"profile": profile, "settings": settings}
+        except: 
+            return {"profile": {"username": "Usuario", "saldo_virtual": 100000.0}, "settings": {"activo": "crypto_btc_usd", "isActive": False}}
+
     def get_available_markets(self): return self.markets
     def get_api_keys_data(self, u, t): 
         k = self.bot_service.get_api_keys(u, t)
@@ -463,7 +488,7 @@ class MainViewModel:
     def forgot_password(self, e): return self.auth_service.reset_password(e)
     def generate_mock_trades(self, u, t): return False
 
-    # --- BOT SETTINGS & AUTO ---
+    # --- BOT SETTINGS ---
     def get_bot_settings_data(self, u, t):
         s = self.bot_service.get_bot_settings(u, t)
         if s is None:
