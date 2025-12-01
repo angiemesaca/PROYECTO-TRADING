@@ -12,9 +12,9 @@
 </head>
 <body class="d-flex flex-column min-vh-100">
 
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top" style="background-color: #181a20; border-bottom: 1px solid #2b3139;">
         <div class="container-fluid px-4">
-            <a class="navbar-brand text-warning" href="{{ url_for('dashboard') }}">
+            <a class="navbar-brand text-warning fw-bold" href="{{ url_for('dashboard') }}">
                 <i class="bi bi-cpu-fill me-2"></i>Wallet Trainer
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -24,24 +24,24 @@
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if 'user_id' in session %}
                         <li class="nav-item mx-2"><a class="nav-link {% if request.endpoint == 'dashboard' %}active text-white fw-bold{% endif %}" href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                        <li class="nav-item mx-2"><a class="nav-link {% if request.endpoint == 'performance' %}active text-white fw-bold{% endif %}" href="{{ url_for('performance') }}">Rendimiento</a></li>
+                        <li class="nav-item mx-2"><a class="nav-link {% if request.endpoint == 'performance' %}active text-white fw-bold{% endif %}" href="{{ url_for('performance') }}">Portafolio</a></li>
                         <li class="nav-item mx-2"><a class="nav-link {% if request.endpoint == 'sugerencias' %}active text-white fw-bold{% endif %}" href="{{ url_for('sugerencias') }}">IA Signals</a></li>
                         
                         <li class="nav-item dropdown ms-3">
                             <a class="nav-link dropdown-toggle btn btn-sm btn-outline-secondary text-white px-3" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-person-circle me-1"></i> Mi Cuenta
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow">
+                            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark shadow" style="background-color: #1e2329; border: 1px solid #2b3139;">
                                 <li><a class="dropdown-item" href="{{ url_for('bot_settings') }}">Ajustes del Bot</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('profile') }}">Perfil</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('api_keys') }}">API Keys</a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                <li><hr class="dropdown-divider border-secondary"></li>
                                 <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}">Cerrar Sesión</a></li>
                             </ul>
                         </li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('home') }}">Login</a></li>
-                        <li class="nav-item"><a class="nav-link btn btn-warning text-dark px-3 ms-2" href="{{ url_for('register') }}">Registro</a></li>
+                        <li class="nav-item"><a class="nav-link btn btn-warning text-dark px-3 ms-2 fw-bold" href="{{ url_for('register') }}">Registro</a></li>
                     {% endif %}
                 </ul>
             </div>
@@ -71,7 +71,7 @@
         {% block content %}{% endblock %}
     </div>
 
-    <footer class="mt-auto py-3 text-center text-secondary small" style="border-top: 1px solid #2b3139;">
+    <footer class="mt-auto py-3 text-center text-secondary small" style="background-color: #0b0e11; border-top: 1px solid #2b3139;">
         <div class="container">
             <span>© 2025 Wallet Trainer | Sistema de Trading Automatizado</span>
         </div>
@@ -83,18 +83,16 @@
         window.addEventListener('load', function() {
             const widgetConfig = {
               "symbols": [
-                // --- COLOMBIA (ADRs en New York) ---
+                // COLOMBIA
                 { "proName": "NYSE:EC", "title": "Ecopetrol" },
                 { "proName": "NYSE:CIB", "title": "Bancolombia" },
                 { "proName": "NYSE:AVAL", "title": "Grupo Aval" },
                 { "proName": "NYSE:NU", "title": "NuBank" },
-                
-                // --- CRIPTO PRINCIPAL ---
+                // CRIPTO
                 { "proName": "BINANCE:BTCUSDT", "title": "Bitcoin" },
                 { "proName": "BINANCE:ETHUSDT", "title": "Ethereum" },
                 { "proName": "BINANCE:SOLUSDT", "title": "Solana" },
-                
-                // --- FOREX Y COMMODITIES ---
+                // GLOBAL
                 { "proName": "FX:EURUSD", "title": "EUR/USD" },
                 { "proName": "OANDA:XAUUSD", "title": "Oro" }
               ],
@@ -105,15 +103,13 @@
               "locale": "es"
             };
             
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-            script.async = true;
-            script.innerHTML = JSON.stringify(widgetConfig);
-            
             const container = document.getElementById('tv-ticker-tape-widget');
             if (container) {
-                // Limpiamos cualquier contenido previo por si acaso
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+                script.async = true;
+                script.innerHTML = JSON.stringify(widgetConfig);
                 container.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
                 container.appendChild(script);
             }
