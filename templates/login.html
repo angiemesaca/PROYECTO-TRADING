@@ -1,40 +1,62 @@
-<script type="text/javascript">
-        window.addEventListener('load', function() {
-            const widgetConfig = {
-              "symbols": [
-                // --- COLOMBIA (ADRs en New York) ---
-                { "proName": "NYSE:EC", "title": "Ecopetrol" },
-                { "proName": "NYSE:CIB", "title": "Bancolombia" },
-                { "proName": "NYSE:AVAL", "title": "Grupo Aval" },
-                { "proName": "NYSE:NU", "title": "NuBank" },
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión - Wallet Trainer{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 75vh;">
+    <div class="col-md-5 col-lg-4">
+        
+        <div class="text-center mb-4 fade-in">
+            <div class="bg-black border border-secondary text-warning rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 shadow-lg" style="width: 80px; height: 80px; font-size: 2rem;">
+                <i class="bi bi-wallet2"></i>
+            </div>
+            <h3 class="fw-bold text-white ls-1">BIENVENIDO</h3>
+            <p class="text-secondary small font-monospace">TERMINAL DE TRADING ALGORÍTMICO</p>
+        </div>
+
+        <div class="card bg-dark border-secondary shadow-lg fade-in">
+            <div class="card-body p-4 p-md-5">
                 
-                // --- CRIPTO PRINCIPAL ---
-                { "proName": "BINANCE:BTCUSDT", "title": "Bitcoin" },
-                { "proName": "BINANCE:ETHUSDT", "title": "Ethereum" },
-                { "proName": "BINANCE:SOLUSDT", "title": "Solana" },
-                
-                // --- FOREX Y COMMODITIES ---
-                { "proName": "FX:EURUSD", "title": "EUR/USD" },
-                { "proName": "OANDA:XAUUSD", "title": "Oro" }
-              ],
-              "showSymbolLogo": true,
-              "colorTheme": "dark",
-              "isTransparent": false,
-              "displayMode": "adaptive",
-              "locale": "es"
-            };
-            
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-            script.async = true;
-            script.innerHTML = JSON.stringify(widgetConfig);
-            
-            const container = document.getElementById('tv-ticker-tape-widget');
-            if (container) {
-                // Limpiamos cualquier contenido previo por si acaso
-                container.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
-                container.appendChild(script);
-            }
-        });
-    </script>
+                <form action="{{ url_for('login') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-bold">CORREO ELECTRÓNICO</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-black border-secondary text-secondary"><i class="bi bi-envelope-fill"></i></span>
+                            <input type="email" name="email" class="form-control bg-black border-secondary text-white" placeholder="usuario@email.com" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-secondary small fw-bold">CONTRASEÑA</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-black border-secondary text-secondary"><i class="bi bi-key-fill"></i></span>
+                            <input type="password" name="password" class="form-control bg-black border-secondary text-white" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-warning fw-bold text-dark py-2">
+                            INGRESAR <i class="bi bi-arrow-right-short fs-5 align-middle"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-secondary">
+                    <a href="{{ url_for('register') }}" class="text-white small text-decoration-none hover-link">
+                        <i class="bi bi-person-plus me-1"></i> Crear Cuenta
+                    </a>
+                    <a href="{{ url_for('forgot_password') }}" class="text-secondary small text-decoration-none hover-link">
+                        Olvidé mi clave
+                    </a>
+                </div>
+
+            </div>
+        </div>
+        
+        <div class="text-center mt-3 text-secondary small font-monospace opacity-50">
+            SECURE CONNECTION // v3.5
+        </div>
+
+    </div>
+</div>
+{% endblock %}

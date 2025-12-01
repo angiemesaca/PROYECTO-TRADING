@@ -19,8 +19,14 @@ def home():
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+    # --- AGREGAR ESTE BLOQUE ---
+    if request.method == 'GET':
+        return redirect(url_for('home'))
+    # ---------------------------
+
+    # ... aquí sigue tu código normal de login (email = request.form...) ...
     email = request.form['email']
     password = request.form['password']
     
