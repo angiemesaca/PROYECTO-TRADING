@@ -1,76 +1,82 @@
 {% extends "base.html" %}
 
-{% block title %}Sugerencias IA{% endblock %}
+{% block title %}Neural AI Analysis{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="row g-4 fade-in">
+    <div class="col-lg-3">
+        <div class="card h-100 border-0 bg-transparent">
+            <h5 class="text-secondary text-uppercase ls-1 mb-3"><i class="bi bi-cpu me-2"></i>Activos</h5>
+            
+            <div class="list-group gap-2" id="asset-list">
+                <button class="list-group-item list-group-item-action bg-dark text-white border-start border-4 border-warning shadow-sm py-3" 
+                        data-asset-id="crypto_btc_usd" data-asset-name="Bitcoin">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">Bitcoin</h6>
+                        <span class="badge bg-warning text-dark">BTC</span>
+                    </div>
+                </button>
 
-    <!-- Título -->
-    <div class="d-flex align-items-center mb-4">
-        <span class="text-info me-3">
-            <i class="bi bi-magic" style="font-size: 2.5rem;"></i>
-        </span>
-        <div>
-            <h1 class="display-5 fw-bold text-white">Sugerencias con IA</h1>
-            <p class="fs-5 text-white-50">Análisis y contexto de mercado para tus activos seleccionados.</p>
+                <button class="list-group-item list-group-item-action bg-dark text-white border-start border-4 border-primary shadow-sm py-3" 
+                        data-asset-id="crypto_eth_usd" data-asset-name="Ethereum">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">Ethereum</h6>
+                        <span class="badge bg-primary">ETH</span>
+                    </div>
+                </button>
+
+                <button class="list-group-item list-group-item-action bg-dark text-white border-start border-4 border-info shadow-sm py-3" 
+                        data-asset-id="crypto_sol_usd" data-asset-name="Solana">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">Solana</h6>
+                        <span class="badge bg-info text-dark">SOL</span>
+                    </div>
+                </button>
+
+                <button class="list-group-item list-group-item-action bg-dark text-white border-start border-4 border-secondary shadow-sm py-3" 
+                        data-asset-id="forex_eur_usd" data-asset-name="EUR/USD">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">EUR / USD</h6>
+                        <span class="badge bg-secondary">FOREX</span>
+                    </div>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Contenido -->
-    <div class="row g-4">
-        <!-- Columna de Selección -->
-        <div class="col-lg-4">
-            <div class="card shadow-sm border-0 h-100 bg-dark text-white">
-                <div class="card-body p-4">
-                    <h2 class="h4 fw-bold text-white mb-4">Seleccionar Activo</h2>
-                    
-                    <div class="list-group" id="asset-list">
-                        <button typea="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="crypto_btc_usd" data-asset-name="Bitcoin (BTC)">
-                            Bitcoin (BTC)
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="crypto_eth_usd" data-asset-name="Ethereum (ETH)">
-                            Ethereum (ETH)
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="crypto_sol_usd" data-asset-name="Solana (SOL)">
-                            Solana (SOL)
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="forex_eur_usd" data-asset-name="EUR/USD">
-                            Forex (EUR/USD)
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="commodity_oro" data-asset-name="Oro (XAU)">
-                            Commodity (Oro)
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action list-group-item-dark" data-asset-id="index_spx_500" data-asset-name="S&P 500">
-                            Índice (S&P 500)
-                        </button>
-                    </div>
+    <div class="col-lg-9">
+        <div class="card h-100 bg-black border border-secondary shadow-lg">
+            <div class="card-header bg-dark border-bottom border-secondary d-flex justify-content-between align-items-center">
+                <span class="font-monospace text-success"><i class="bi bi-terminal-fill me-2"></i>AI_TERMINAL_V2.0</span>
+                <div>
+                    <span class="dot bg-danger rounded-circle d-inline-block me-1" style="width: 10px; height: 10px;"></span>
+                    <span class="dot bg-warning rounded-circle d-inline-block me-1" style="width: 10px; height: 10px;"></span>
+                    <span class="dot bg-success rounded-circle d-inline-block" style="width: 10px; height: 10px;"></span>
                 </div>
             </div>
-        </div>
-        
-        <!-- Columna de Resultados -->
-        <div class="col-lg-8">
-            <div class="card shadow-sm border-0 bg-dark text-white" style="min-height: 400px;">
-                <div class="card-body p-4 p-md-5">
-                    <h2 class="h4 fw-bold text-white mb-4" id="analysis-title">Análisis de IA</h2>
-                    
-                    <!-- Aquí se inyecta el contenido de la IA -->
-                    <div id="analysis-content">
-                        <div class="text-center text-white-50 mt-5">
-                            <i class="bi bi-arrow-left"></i> 
-                            Selecciona un activo de la lista para comenzar el análisis.
-                        </div>
-                    </div>
-                    
-                    <!-- Estado de Carga (Spinner) -->
-                    <div id="loading-spinner" class="text-center text-primary mt-5" style="display: none;">
-                        <div class="spinner-border" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">Analizando...</span>
-                        </div>
-                        <p class="mt-3 fw-bold">Analizando, por favor espera...</p>
-                    </div>
 
+            <div class="card-body p-4 font-monospace" style="min-height: 450px; position: relative;">
+                
+                <h3 id="analysis-title" class="text-white mb-4 fw-light">
+                    <span class="text-secondary">></span> Esperando input...
+                </h3>
+
+                <div id="analysis-content" class="text-white opacity-75">
+                    <p class="text-secondary">Selecciona un activo del panel izquierdo para iniciar el escaneo de mercado en tiempo real.</p>
                 </div>
+
+                <div id="loading-spinner" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                    <div class="text-center">
+                        <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                        <div class="text-success blink-text">ESTABLECIENDO CONEXIÓN SEGURA...</div>
+                        <div class="text-secondary small mt-1">Calculando RSI • Medias Móviles • Sentimiento</div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="card-footer bg-dark border-top border-secondary text-end">
+                <small class="text-secondary font-monospace">DATA FEED: LIVE (BINANCE/CCXT)</small>
             </div>
         </div>
     </div>
@@ -78,74 +84,78 @@
 {% endblock %}
 
 {% block page_scripts %}
+<style>
+    /* Efecto de parpadeo */
+    .blink-text { animation: blinker 1.5s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0; } }
+    
+    /* Espaciado de letras */
+    .ls-1 { letter-spacing: 2px; }
+    
+    /* Hover en botones */
+    .list-group-item-action:hover { transform: translateX(5px); transition: transform 0.2s; background-color: #2b3139 !important; }
+    .list-group-item-action.active { background-color: #2b3139 !important; border-color: var(--bs-primary) !important; }
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const assetButtons = document.querySelectorAll('#asset-list .list-group-item');
+    const assetButtons = document.querySelectorAll('#asset-list button');
     const analysisTitle = document.getElementById('analysis-title');
     const analysisContent = document.getElementById('analysis-content');
     const loadingSpinner = document.getElementById('loading-spinner');
     
     assetButtons.forEach(button => {
         button.addEventListener('click', () => {
-            // Marcar el botón como activo
+            // UI Update
             assetButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
             
             const assetId = button.dataset.assetId;
             const assetName = button.dataset.assetName;
             
-            // Actualizar UI
-            analysisTitle.innerText = `Analizando ${assetName}...`;
-            analysisContent.style.display = 'none';
+            // Limpiar y mostrar carga
+            analysisTitle.innerHTML = `<span class="text-success">></span> Analizando: <span class="text-white fw-bold">${assetName}</span>`;
+            analysisContent.style.opacity = '0';
             loadingSpinner.style.display = 'block';
             
-            // Llamada a la API
+            // Petición a la API (Ahora devuelve datos REALES)
             fetch("{{ url_for('get_ai_suggestion') }}", {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    // --- ¡AQUÍ ESTÁ EL ARREGLO! ---
-                    // Cambiamos 'asset_id' por 'asset' para que coincida con app.py
-                    asset: assetId
-                    // --- FIN DEL ARREGLO ---
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ asset: assetId })
             })
             .then(response => response.json())
             .then(data => {
                 loadingSpinner.style.display = 'none';
-                analysisContent.style.display = 'block';
+                analysisContent.style.opacity = '1';
                 
                 if (data.error) {
-                    analysisTitle.innerText = `Error en el análisis de ${assetName}`;
-                    // Usamos 'pre' para respetar los saltos de línea del error
-                    analysisContent.innerHTML = `<pre class="text-danger">${data.error}</pre>`;
+                    analysisContent.innerHTML = `<span class="text-danger">ERROR CRÍTICO: ${data.error}</span>`;
                 } else {
-                    analysisTitle.innerText = `Análisis de ${assetName}`;
-                    // El resto de tu lógica para formatear la respuesta es perfecta
-                    let formattedText = data.analysis.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                    analysisContent.innerHTML = `<pre class="text-white" style="white-space: pre-wrap; word-wrap: break-word;">${formattedText}</pre>`;
+                    // Formateo del texto para que se vea Hacker
+                    // Reemplazamos **texto** por negrita verde
+                    let formatted = data.suggestion
+                        .replace(/\*\*(.*?)\*\*/g, '<strong class="text-warning">$1</strong>')
+                        .replace(/ALCISTA/g, '<span class="badge bg-success text-white fs-6">ALCISTA 🟢</span>')
+                        .replace(/BAJISTA/g, '<span class="badge bg-danger text-white fs-6">BAJISTA 🔴</span>')
+                        .replace(/\n/g, '<br>');
+
+                    analysisContent.innerHTML = `<div class="fs-5">${formatted}</div>`;
                 }
             })
-            .catch(error => {
+            .catch(err => {
                 loadingSpinner.style.display = 'none';
-                analysisContent.style.display = 'block';
-                analysisTitle.innerText = `Error de Conexión`;
-                analysisContent.innerHTML = `<p class="text-danger">No se pudo conectar al servidor. Error: ${error}</p>`;
+                analysisContent.style.opacity = '1';
+                analysisContent.innerHTML = `<span class="text-danger">CONEXIÓN FALLIDA: ${err}</span>`;
             });
         });
     });
 
-    // --- ¡BONUS! ---
-    // Seleccionar el activo que el usuario tiene en sus "ajustes"
-    // (Obtenemos '{{ settings.activo }}' de la plantilla)
-    const activoGuardado = '{{ settings.activo }}';
-    if (activoGuardado) {
-        const botonActivo = document.querySelector(`#asset-list button[data-asset-id="${activoGuardado}"]`);
-        if (botonActivo) {
-            botonActivo.click(); // Simulamos un clic para cargar el análisis
-        }
+    // Auto-click en el activo guardado
+    const savedAsset = '{{ settings.activo }}';
+    if(savedAsset) {
+        const btn = document.querySelector(`button[data-asset-id="${savedAsset}"]`);
+        if(btn) btn.click();
     }
 });
 </script>
