@@ -22,7 +22,7 @@ class MainViewModel:
         })
 
     # ==============================================================================
-    # 1. GESTIÓN DE PRECIOS Y MERCADOS (CEREBRO HÍBRIDO)
+    # 1. GESTIÓN DE PRECIOS Y MERCADOS (ROUTER)
     # ==============================================================================
 
     def _get_symbol_and_source(self, asset_id):
@@ -249,88 +249,8 @@ class MainViewModel:
         return True
 
     # ==============================================================================
-    # 4. ANÁLISIS DE IA Y DASHBOARD
+    # 4. DATOS DE RENDIMIENTO Y PORTAFOLIO PRO (COMPLETO)
     # ==============================================================================
-
-    def get_ai_analysis(self, user_id, token, asset_name):
-        try:
-            symbol, source = self._get_symbol_and_source(f"ai_{asset_name.lower()}")
-            
-            # Normalización de nombres para el título
-            display_name = symbol
-            if "bitcoin" in asset_name.lower(): symbol, source = 'BTC/USD', 'crypto'
-            if "ethereum" in asset_name.lower(): symbol, source = 'ETH/USD', 'crypto'
-            if "eur" in asset_name.lower(): symbol, source = 'EURUSD=X', 'yahoo'
-            if "oro" in asset_name.lower(): symbol, source = 'GC=F', 'yahoo'
-
-            df = pd.DataFrame()
-
-            # Obtención de datos históricos
-            if source == 'crypto':
-                ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe='4h', limit=50)
-                if not ohlcv: return "Datos insuficientes para análisis técnico."
-                df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-            else:
-                ticker = yf.Ticker(symbol)
-                hist = ticker.history(period="1mo", interval="1d") 
-                if hist.empty: return "Mercado cerrado o datos no disponibles."
-                df = hist.reset_index()
-                df.rename(columns={'Close': 'close'}, inplace=True)
-
-            current_price = df['close'].iloc[-1]
-            
-            # Cálculos Técnicos (RSI + Medias Móviles)
-            delta = df['close'].diff()
-            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-            rs = gain / loss
-            rsi = 100 - (100 / (1 + rs)).iloc[-1]
-            
-            sma_short = df['close'].rolling(window=20).mean().iloc[-1]
-            sma_long = df['close'].rolling(window=50).mean().iloc[-1]
-            
-            tendencia = "ALCISTA 🟢" if sma_short > sma_long else "BAJISTA 🔴"
-            
-            if rsi > 70: sentimiento = "SOBRECOMPRA ⚠️"
-            elif rsi < 30: sentimiento = "SOBREVENTA 🚀"
-            else: sentimiento = "NEUTRAL ⚖️"
-            
-            # --- SALIDA DE TEXTO COMPLETA (HTML) ---
-            analisis = f"""
-            <strong>Análisis Técnico: {symbol}</strong><br>
-            <br>
-            Precio Actual: <strong>${current_price:,.2f}</strong><br>
-            Tendencia (MA20/50): <strong>{tendencia}</strong><br>
-            RSI (14): <strong>{round(rsi, 2)}</strong> ({sentimiento})<br>
-            <br>
-            <strong>Conclusión de la IA:</strong><br>
-            El activo muestra una estructura {tendencia.split(' ')[0].lower()}. 
-            {'Los compradores mantienen el control.' if sma_short > sma_long else 'Presión de venta dominante.'}
-            {'Alerta de posible reversión por RSI alto.' if rsi > 70 else 'Posible zona de compra por RSI bajo.' if rsi < 30 else 'Zona de consolidación, esperar ruptura.'}
-            """
-            return analisis
-
-        except Exception as e:
-            return f"Error generando análisis: {str(e)}"
-
-    def get_dashboard_data(self, user_id, token):
-        try:
-            # Revisamos si el bot debe operar automáticamente
-            self.check_bot_execution(user_id, token)
-            
-            profile = self.get_user_profile(user_id, token)
-            settings = self.get_bot_settings_data(user_id, token)
-            
-            # Obtenemos precio actual para mostrar en el dashboard
-            current_price = self.get_real_price(settings.get('activo'))
-            settings['current_price'] = current_price
-            
-            return {"profile": profile, "settings": settings}
-        except: 
-            return {
-                "profile": {"username": "Usuario", "saldo_virtual": 100000.0}, 
-                "settings": {"activo": "crypto_btc_usd", "isActive": False}
-            }
 
     def get_performance_data(self, user_id, token):
         trade_log = self.bot_service.get_trade_log(user_id, token)
@@ -364,8 +284,7 @@ class MainViewModel:
                     holdings[asset]['qty'] += qty
                     holdings[asset]['total_cost'] += (qty * price)
                 elif tipo == 'VENTA':
-                    # Al vender, reducimos el costo proporcionalmente para mantener el precio promedio
-                    # Evitamos div/0
+                    # Al vender, reducimos el costo proporcionalmente
                     if holdings[asset]['qty'] > 0:
                         avg_price = holdings[asset]['total_cost'] / holdings[asset]['qty']
                         holdings[asset]['total_cost'] -= (qty * avg_price)
@@ -384,7 +303,7 @@ class MainViewModel:
             
             if qty > 0.00001: 
                 try:
-                    # 1. Obtener Precio Actual Real
+                    # 1. Obtener Precio Actual Real (Intento de API)
                     current_price = 0
                     if "BTC" in asset: current_price = self.get_real_price("crypto_btc_usd")
                     elif "ETH" in asset: current_price = self.get_real_price("crypto_eth_usd")
@@ -394,6 +313,8 @@ class MainViewModel:
                     elif "CIB" in asset: current_price = self.get_real_price("stock_bancolombia")
                     elif "AVAL" in asset: current_price = self.get_real_price("stock_aval")
                     
+                    # Fallback si la API falla: usamos el precio de costo
+                    if current_price == 0 and qty > 0: current_price = cost_basis / qty
                     if current_price == 0: current_price = 1 
                     
                     # 2. Calcular Valores
@@ -411,10 +332,10 @@ class MainViewModel:
                     lista_posiciones.append({
                         "activo": asset,
                         "cantidad": qty,
-                        "precio_compra": precio_promedio_compra, # <--- NUEVO
+                        "precio_compra": precio_promedio_compra,
                         "precio_actual": current_price,
                         "valor_total": valor_mercado,
-                        "pnl_percent": pnl_percent # <--- NUEVO (Para ponerlo verde/rojo)
+                        "pnl_percent": pnl_percent
                     })
                 except Exception as e:
                     print(f"Error calculando posición {asset}: {e}")
@@ -438,12 +359,93 @@ class MainViewModel:
         }
 
     # ==============================================================================
-    # 5. FUNCIONES AUXILIARES (API KEYS, AUTH, ETC)
+    # 5. DASHBOARD E IA
+    # ==============================================================================
+
+    def get_dashboard_data(self, user_id, token):
+        try:
+            # Revisamos si el bot debe operar automáticamente
+            self.check_bot_execution(user_id, token)
+            
+            profile = self.get_user_profile(user_id, token)
+            settings = self.get_bot_settings_data(user_id, token)
+            
+            # Obtenemos precio actual para mostrar en el dashboard
+            current_price = self.get_real_price(settings.get('activo'))
+            settings['current_price'] = current_price
+            
+            return {"profile": profile, "settings": settings}
+        except: 
+            return {
+                "profile": {"username": "Usuario", "saldo_virtual": 100000.0}, 
+                "settings": {"activo": "crypto_btc_usd", "isActive": False}
+            }
+
+    def get_ai_analysis(self, user_id, token, asset_name):
+        try:
+            symbol, source = self._get_symbol_and_source(f"ai_{asset_name.lower()}")
+            
+            # Normalización
+            if "bitcoin" in asset_name.lower(): symbol, source = 'BTC/USD', 'crypto'
+            if "ethereum" in asset_name.lower(): symbol, source = 'ETH/USD', 'crypto'
+            if "eur" in asset_name.lower(): symbol, source = 'EURUSD=X', 'yahoo'
+            if "oro" in asset_name.lower(): symbol, source = 'GC=F', 'yahoo'
+
+            df = pd.DataFrame()
+
+            # Obtención de datos históricos
+            if source == 'crypto':
+                ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe='4h', limit=50)
+                if not ohlcv: return "Datos insuficientes para análisis técnico."
+                df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+            else:
+                ticker = yf.Ticker(symbol)
+                hist = ticker.history(period="1mo", interval="1d") 
+                if hist.empty: return "Mercado cerrado o datos no disponibles."
+                df = hist.reset_index()
+                df.rename(columns={'Close': 'close'}, inplace=True)
+
+            current_price = df['close'].iloc[-1]
+            
+            # Cálculos Técnicos
+            delta = df['close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rs = gain / loss
+            rsi = 100 - (100 / (1 + rs)).iloc[-1]
+            
+            sma_short = df['close'].rolling(window=20).mean().iloc[-1]
+            sma_long = df['close'].rolling(window=50).mean().iloc[-1]
+            
+            tendencia = "ALCISTA 🟢" if sma_short > sma_long else "BAJISTA 🔴"
+            
+            if rsi > 70: sentimiento = "SOBRECOMPRA ⚠️"
+            elif rsi < 30: sentimiento = "SOBREVENTA 🚀"
+            else: sentimiento = "NEUTRAL ⚖️"
+            
+            # --- SALIDA DE TEXTO COMPLETA (HTML) ---
+            analisis = f"""
+            <strong>Análisis Técnico: {symbol}</strong><br>
+            <br>
+            Precio Actual: <strong>${current_price:,.2f}</strong><br>
+            Tendencia (MA20/50): <strong>{tendencia}</strong><br>
+            RSI (14): <strong>{round(rsi, 2)}</strong> ({sentimiento})<br>
+            <br>
+            <strong>Conclusión de la IA:</strong><br>
+            El activo muestra una estructura {tendencia.split(' ')[0].lower()}. 
+            {'Los compradores mantienen el control.' if sma_short > sma_long else 'Presión de venta dominante.'}
+            {'Alerta de posible reversión por RSI alto.' if rsi > 70 else 'Posible zona de compra por RSI bajo.' if rsi < 30 else 'Zona de consolidación, esperar ruptura.'}
+            """
+            return analisis
+
+        except Exception as e:
+            return f"Error generando análisis: {str(e)}"
+
+    # ==============================================================================
+    # 6. FUNCIONES AUXILIARES
     # ==============================================================================
     
-    def get_available_markets(self): 
-        return self.markets
-        
+    def get_available_markets(self): return self.markets
     def get_api_keys_data(self, u, t): 
         k = self.bot_service.get_api_keys(u, t)
         return [v for k, v in k.items()] if k else []
@@ -455,22 +457,13 @@ class MainViewModel:
     def delete_api_key(self, u, e, t): 
         return self.bot_service.delete_api_key(u, e, t)
         
-    def change_password(self, t, p): 
-        return self.auth_service.change_password(t, p)
-        
-    def change_email(self, t, e): 
-        return self.auth_service.change_email(t, e)
-        
-    def delete_profile(self, u, t): 
-        return self.db_service.delete_user_data(u, t)
-        
-    def forgot_password(self, e): 
-        return self.auth_service.reset_password(e)
-    
-    def generate_mock_trades(self, u, t): 
-        return False # Desactivado porque ahora usamos trading real
+    def change_password(self, t, p): return self.auth_service.change_password(t, p)
+    def change_email(self, t, e): return self.auth_service.change_email(t, e)
+    def delete_profile(self, u, t): return self.db_service.delete_user_data(u, t)
+    def forgot_password(self, e): return self.auth_service.reset_password(e)
+    def generate_mock_trades(self, u, t): return False
 
-    # --- BOT SETTINGS ---
+    # --- BOT SETTINGS & AUTO ---
     def get_bot_settings_data(self, u, t):
         s = self.bot_service.get_bot_settings(u, t)
         if s is None:
@@ -491,12 +484,8 @@ class MainViewModel:
         try: s = self.get_bot_settings_data(u, t); s['isActive'] = False; return self.bot_service.save_bot_settings(u, s, t)
         except: return False
         
-    # --- EJECUCIÓN AUTOMÁTICA (BOT) ---
     def check_bot_execution(self, user_id, token):
-        """
-        Versión simplificada del bot automático.
-        Usa la misma lógica de seguridad que el manual.
-        """
+        """ Bot automático simplificado. """
         settings = self.get_bot_settings_data(user_id, token)
         if not settings.get('isActive'): return
         
@@ -520,7 +509,6 @@ class MainViewModel:
             
             if df.empty: return
             
-            # Lógica simple de cruce
             sma_14 = df['close'].rolling(window=14).mean().iloc[-1]
             last_close = df['close'].iloc[-1]
             
