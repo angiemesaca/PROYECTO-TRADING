@@ -360,3 +360,62 @@ class MainViewModel:
             "stats": stats, "all_trades": trade_list,
             "grafica_labels": labels_grafica, "grafica_data": data_grafica
         }
+        
+    # --- PAPER TRADING MANUAL (TIPO ETORO) ---
+    def execute_manual_trade(self, user_id, token, asset_id, action, quantity=None):
+        """
+        Ejecuta una compra/venta manual al precio REAL del mercado.
+        Afecta al Saldo Virtual del usuario.
+        """
+        try:
+            # 1. Obtener precio real en este instante
+            current_price = self.get_real_price(asset_id)
+            if current_price == 0: return False, "Mercado cerrado o error de precio."
+
+            # 2. Definir cantidad por defecto si no se especifica
+            # (Simplificación: 0.01 para Cripto, 1 para Stocks)
+            if quantity is None:
+                quantity = 1.0 if "stock" in asset_id or "forex" in asset_id else 0.01
+
+            # 3. Calcular impacto en el saldo
+            total_value = current_price * quantity
+            
+            # Obtener saldo actual
+            profile = self.get_user_profile(user_id, token)
+            current_balance = float(profile.get('saldo_virtual', 10000.0))
+
+            # Lógica de Saldo
+            nuevo_saldo = current_balance
+            if action == "COMPRA":
+                if current_balance < total_value:
+                    return False, f"Saldo insuficiente (${current_balance:,.2f}) para operar ${total_value:,.2f}"
+                nuevo_saldo = current_balance - total_value
+            elif action == "VENTA":
+                # En Paper Trading simple, permitimos 'Shorting' (vender sin tener) 
+                # o vender para cerrar. Sumamos al saldo.
+                nuevo_saldo = current_balance + total_value
+
+            # 4. Guardar todo
+            # A) Actualizar Saldo
+            self.update_user_profile(user_id, {"saldo_virtual": nuevo_saldo}, token)
+
+            # B) Registrar Trade en Historial
+            symbol, _ = self._get_symbol_and_source(asset_id)
+            trade_record = {
+                "tipo": action,
+                "activo": symbol,
+                "precio_entrada": float(current_price),
+                "cantidad": quantity,
+                "total_operacion": total_value,
+                "saldo_resultante": nuevo_saldo,
+                "pnl": 0.0, # Se calcularía al cerrar posición (avanzado), por ahora 0
+                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "motivo": "Operación Manual (Paper Trading)"
+            }
+            self.bot_service.record_trade(user_id, trade_record, token)
+
+            return True, f"Orden ejecutada: {action} {quantity} {symbol} a ${current_price:,.2f}"
+
+        except Exception as e:
+            print(f"Error trading manual: {e}")
+            return False, str(e)

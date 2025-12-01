@@ -1,14 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Neural AI Analysis{% endblock %}
+{% block title %}Neural AI & Trading{% endblock %}
 
 {% block content %}
 <div class="row g-4 fade-in">
     <div class="col-lg-3">
         <div class="card h-100 border-0 bg-transparent">
-            <h5 class="text-secondary text-uppercase ls-1 mb-3"><i class="bi bi-cpu me-2"></i>Activos</h5>
+            <h5 class="text-secondary text-uppercase ls-1 mb-3"><i class="bi bi-cpu me-2"></i>Mercados</h5>
             
             <div class="list-group gap-2" id="asset-list">
+                
+                <div class="text-secondary small px-3 fw-bold mt-2">CRIPTOASSETS</div>
+                
                 <button class="list-group-item list-group-item-action bg-dark text-white border-start border-4 border-warning shadow-sm py-3" 
                         data-asset-id="crypto_btc_usd" data-asset-name="Bitcoin">
                     <div class="d-flex w-100 justify-content-between align-items-center">
@@ -33,13 +36,25 @@
                     </div>
                 </button>
 
+                <div class="text-secondary small px-3 fw-bold mt-3">GLOBAL MARKETS</div>
+
                 <button class="list-group-item list-group-item-action bg-dark text-white border-start border-4 border-secondary shadow-sm py-3" 
                         data-asset-id="forex_eur_usd" data-asset-name="EUR/USD">
                     <div class="d-flex w-100 justify-content-between align-items-center">
                         <h6 class="mb-0 fw-bold">EUR / USD</h6>
-                        <span class="badge bg-secondary">FOREX</span>
+                        <span class="badge bg-secondary">FX</span>
                     </div>
                 </button>
+
+                <button class="list-group-item list-group-item-action bg-dark text-white border-start border-4 border-warning shadow-sm py-3" 
+                        data-asset-id="commodity_oro" data-asset-name="Oro (Gold)">
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <h6 class="mb-0 fw-bold">Oro</h6>
+                        <span class="badge bg-warning text-dark">GLD</span>
+                    </div>
+                </button>
+
+                <div class="text-secondary small px-3 fw-bold mt-3">BOLSA COLOMBIA (ADR)</div>
 
                 <button class="list-group-item list-group-item-action bg-dark text-white border-start border-4 border-success shadow-sm py-3" 
                         data-asset-id="stock_ecopetrol" data-asset-name="Ecopetrol S.A.">
@@ -56,7 +71,7 @@
                         <span class="badge bg-warning text-dark">CIB</span>
                     </div>
                 </button>
-    
+                
                 <button class="list-group-item list-group-item-action bg-dark text-white border-start border-4 border-info shadow-sm py-3" 
                         data-asset-id="stock_aval" data-asset-name="Grupo Aval">
                     <div class="d-flex w-100 justify-content-between align-items-center">
@@ -64,43 +79,67 @@
                         <span class="badge bg-info text-dark">AVAL</span>
                     </div>
                 </button>
+
             </div>
         </div>
     </div>
 
     <div class="col-lg-9">
-        <div class="card h-100 bg-black border border-secondary shadow-lg">
+        <div class="card h-100 bg-black border border-secondary shadow-lg d-flex flex-column">
+            
             <div class="card-header bg-dark border-bottom border-secondary d-flex justify-content-between align-items-center">
-                <span class="font-monospace text-success"><i class="bi bi-terminal-fill me-2"></i>AI_TERMINAL_V2.0</span>
-                <div>
-                    <span class="dot bg-danger rounded-circle d-inline-block me-1" style="width: 10px; height: 10px;"></span>
-                    <span class="dot bg-warning rounded-circle d-inline-block me-1" style="width: 10px; height: 10px;"></span>
-                    <span class="dot bg-success rounded-circle d-inline-block" style="width: 10px; height: 10px;"></span>
+                <span class="font-monospace text-success"><i class="bi bi-terminal-fill me-2"></i>AI_TRADING_DESK_V3.0</span>
+                <div class="font-monospace text-white-50 small">
+                    SALDO DISPONIBLE: <span class="text-warning fw-bold" id="live-balance">Cargando...</span>
                 </div>
             </div>
 
-            <div class="card-body p-4 font-monospace" style="min-height: 450px; position: relative;">
+            <div class="card-body p-4 font-monospace flex-grow-1" style="position: relative; min-height: 300px;">
                 
                 <h3 id="analysis-title" class="text-white mb-4 fw-light">
-                    <span class="text-secondary">></span> Esperando input...
+                    <span class="text-secondary">></span> Seleccione Activo...
                 </h3>
 
-                <div id="analysis-content" class="text-white opacity-75">
-                    <p class="text-secondary">Selecciona un activo del panel izquierdo para iniciar el escaneo de mercado en tiempo real.</p>
+                <div id="analysis-content" class="text-white opacity-75 mb-4">
+                    <p class="text-secondary">Esperando selección de objetivo para iniciar escaneo y habilitar controles de trading.</p>
                 </div>
 
-                <div id="loading-spinner" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                <div id="loading-spinner" style="display: none; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);">
                     <div class="text-center">
                         <div class="spinner-border text-success mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
-                        <div class="text-success blink-text">ESTABLECIENDO CONEXIÓN SEGURA...</div>
-                        <div class="text-secondary small mt-1">Calculando RSI • Medias Móviles • Sentimiento</div>
+                        <div class="text-success blink-text">ANALIZANDO MERCADO...</div>
+                        <div class="text-secondary small mt-1">Conectando feeds de precios...</div>
                     </div>
                 </div>
 
             </div>
-            
-            <div class="card-footer bg-dark border-top border-secondary text-end">
-                <small class="text-secondary font-monospace">DATA FEED: LIVE (BINANCE/CCXT)</small>
+
+            <div class="card-footer bg-dark border-top border-secondary p-4">
+                <h6 class="text-secondary text-uppercase small ls-1 mb-3">
+                    <i class="bi bi-joystick me-1"></i> Ejecución Manual (Paper Trading)
+                </h6>
+                
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <button id="btn-buy" class="btn btn-outline-success w-100 py-3 fw-bold text-uppercase d-flex align-items-center justify-content-center gap-2" disabled onclick="executeTrade('COMPRA')">
+                            <i class="bi bi-graph-up-arrow fs-4"></i>
+                            <div class="text-start">
+                                <span class="d-block small opacity-75" style="font-size: 0.7rem;">ABRIR LARGO</span>
+                                <span class="fs-5">COMPRAR</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button id="btn-sell" class="btn btn-outline-danger w-100 py-3 fw-bold text-uppercase d-flex align-items-center justify-content-center gap-2" disabled onclick="executeTrade('VENTA')">
+                            <i class="bi bi-graph-down-arrow fs-4"></i>
+                            <div class="text-start">
+                                <span class="d-block small opacity-75" style="font-size: 0.7rem;">ABRIR CORTO</span>
+                                <span class="fs-5">VENDER</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                <div id="trade-status" class="mt-3 text-center small font-monospace text-white" style="min-height: 20px;"></div>
             </div>
         </div>
     </div>
@@ -122,27 +161,41 @@
 </style>
 
 <script>
+// Variable global para saber qué activo estamos viendo
+let selectedAssetId = null;
+
+// Inicializamos el saldo visualmente
+document.getElementById('live-balance').innerText = "${{ '%.2f'|format(settings.get('saldo_virtual', 10000)|float) }}";
+
 document.addEventListener('DOMContentLoaded', () => {
     const assetButtons = document.querySelectorAll('#asset-list button');
-    const analysisTitle = document.getElementById('analysis-title');
-    const analysisContent = document.getElementById('analysis-content');
-    const loadingSpinner = document.getElementById('loading-spinner');
     
     assetButtons.forEach(button => {
         button.addEventListener('click', () => {
-            // UI Update
+            // 1. Actualizar UI de botones (Visual)
             assetButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
             
             const assetId = button.dataset.assetId;
             const assetName = button.dataset.assetName;
             
-            // Limpiar y mostrar carga
-            analysisTitle.innerHTML = `<span class="text-success">></span> Analizando: <span class="text-white fw-bold">${assetName}</span>`;
+            // 2. Guardar selección global
+            selectedAssetId = assetId;
+            
+            // 3. Habilitar botones de Trading
+            document.getElementById('btn-buy').disabled = false;
+            document.getElementById('btn-sell').disabled = false;
+            document.getElementById('trade-status').innerText = ""; // Limpiar mensajes viejos
+
+            // 4. Lógica de IA (Mostrar carga y pedir análisis)
+            const analysisTitle = document.getElementById('analysis-title');
+            const analysisContent = document.getElementById('analysis-content');
+            const loadingSpinner = document.getElementById('loading-spinner');
+
+            analysisTitle.innerHTML = `<span class="text-success">></span> Objetivo: <span class="text-white fw-bold">${assetName}</span>`;
             analysisContent.style.opacity = '0';
             loadingSpinner.style.display = 'block';
             
-            // Petición a la API (Ahora devuelve datos REALES)
             fetch("{{ url_for('get_ai_suggestion') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -152,35 +205,70 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 loadingSpinner.style.display = 'none';
                 analysisContent.style.opacity = '1';
-                
                 if (data.error) {
-                    analysisContent.innerHTML = `<span class="text-danger">ERROR CRÍTICO: ${data.error}</span>`;
+                    analysisContent.innerHTML = `<span class="text-danger">ERROR: ${data.error}</span>`;
                 } else {
-                    // Formateo del texto para que se vea Hacker
-                    // Reemplazamos **texto** por negrita verde
+                    // Formato Hacker para el texto de la IA
                     let formatted = data.suggestion
                         .replace(/\*\*(.*?)\*\*/g, '<strong class="text-warning">$1</strong>')
-                        .replace(/ALCISTA/g, '<span class="badge bg-success text-white fs-6">ALCISTA 🟢</span>')
-                        .replace(/BAJISTA/g, '<span class="badge bg-danger text-white fs-6">BAJISTA 🔴</span>')
+                        .replace(/ALCISTA/g, '<span class="badge bg-success text-white">ALCISTA 🟢</span>')
+                        .replace(/BAJISTA/g, '<span class="badge bg-danger text-white">BAJISTA 🔴</span>')
                         .replace(/\n/g, '<br>');
-
                     analysisContent.innerHTML = `<div class="fs-5">${formatted}</div>`;
                 }
             })
             .catch(err => {
                 loadingSpinner.style.display = 'none';
-                analysisContent.style.opacity = '1';
-                analysisContent.innerHTML = `<span class="text-danger">CONEXIÓN FALLIDA: ${err}</span>`;
+                console.error(err);
+                analysisContent.innerHTML = `<span class="text-danger">Error de conexión.</span>`;
             });
         });
     });
 
-    // Auto-click en el activo guardado
+    // Auto-click en el activo guardado (si existe)
     const savedAsset = '{{ settings.activo }}';
     if(savedAsset) {
         const btn = document.querySelector(`button[data-asset-id="${savedAsset}"]`);
         if(btn) btn.click();
     }
 });
+
+// --- FUNCIÓN PARA EJECUTAR TRADES MANUALES ---
+function executeTrade(action) {
+    if (!selectedAssetId) return;
+
+    const statusDiv = document.getElementById('trade-status');
+    statusDiv.innerHTML = `<span class="text-warning blink-text">ENVIANDO ORDEN AL MERCADO...</span>`;
+    
+    // Deshabilitar botones para evitar doble click accidental
+    document.getElementById('btn-buy').disabled = true;
+    document.getElementById('btn-sell').disabled = true;
+
+    fetch("{{ url_for('manual_trade') }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asset: selectedAssetId, action: action })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Rehabilitar botones
+        document.getElementById('btn-buy').disabled = false;
+        document.getElementById('btn-sell').disabled = false;
+
+        if (data.success) {
+            statusDiv.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle"></i> ${data.message}</span>`;
+            // OPCIONAL: Si quieres que el saldo se actualice solo sin recargar la página,
+            // necesitaríamos que el backend devuelva el nuevo saldo y actualizarlo aquí.
+            // Por ahora, al recargar la página se verá el saldo nuevo.
+        } else {
+            statusDiv.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle"></i> ${data.message}</span>`;
+        }
+    })
+    .catch(error => {
+        document.getElementById('btn-buy').disabled = false;
+        document.getElementById('btn-sell').disabled = false;
+        statusDiv.innerHTML = `<span class="text-danger">Error de conexión con el Broker.</span>`;
+    });
+}
 </script>
 {% endblock %}

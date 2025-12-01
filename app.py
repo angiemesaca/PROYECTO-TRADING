@@ -381,6 +381,24 @@ def delete_api_key():
     
     return redirect(url_for('api_keys'))
 
+@app.route('/manual_trade', methods=['POST'])
+def manual_trade():
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "No autorizado"}), 401
+    
+    user_id = session['user_id']
+    token = session['id_token']
+    
+    # Recibimos datos del JS (asset y action)
+    data = request.get_json()
+    asset_id = data.get('asset')
+    action = data.get('action') # "COMPRA" o "VENTA"
+    
+    success, message = vm.execute_manual_trade(user_id, token, asset_id, action)
+    
+    return jsonify({"success": success, "message": message})
+
+
 if __name__ == "__main__":
     print("Iniciando servidor...")
     app.run(debug=True, use_reloader=False)
