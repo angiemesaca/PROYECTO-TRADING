@@ -209,14 +209,7 @@ def performance():
     token = session['id_token']
     
     data = vm.get_performance_data(user_id, token)
-    
-    return render_template(
-        'rendimientos.html', 
-        stats=data['stats'],
-        trades=data['all_trades'],
-        labels=data['grafica_labels'],
-        pnl_data=data['grafica_data']
-    )
+    return render_template('rendimientos.html', **data)
 
 @app.route('/run_backtest', methods=['POST'])
 def run_backtest():
