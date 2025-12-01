@@ -1,12 +1,12 @@
 from model.auth_service import AuthService
 from model.db_service import DBService
 from model.bot_service import BotService
-# from model.asset_model import ActivoFactory (Lo comentamos temporalmente para usar lógica real directa)
 import datetime
 import os
 import time
-import ccxt # <--- LIBRERÍA NUEVA PARA CONECTAR A BINANCE
-import pandas as pd # <--- PARA INDICADORES TÉCNICOS
+import ccxt 
+import pandas as pd 
+import traceback
 
 class MainViewModel:
     def __init__(self):
@@ -15,34 +15,45 @@ class MainViewModel:
         self.bot_service = BotService()
         self.markets = self.db_service.get_markets()
         
-        # Inicializamos el Exchange (Binance Público)
-        self.exchange = ccxt.binance({
-            'enableRateLimit': True,
-            'options': {'defaultType': 'spot'}
+        # --- CAMBIO IMPORTANTE: USAMOS KRAKEN EN LUGAR DE BINANCE ---
+        # Kraken no bloquea servidores de EE.UU. (como los de Render)
+        self.exchange = ccxt.kraken({
+            'enableRateLimit': True
         })
 
-    # --- AYUDANTES PARA EL MERCADO REAL ---
     def _get_ccxt_symbol(self, asset_id):
-        """Convierte tus IDs (crypto_btc_usd) a formato Binance (BTC/USDT)"""
-        if not asset_id: return 'BTC/USDT'
+        """
+        Mapea tus IDs internos a los símbolos de Kraken.
+        Nota: Kraken opera principalmente con USD real, no USDT.
+        """
+        if not asset_id: return 'BTC/USD'
         
-        # Mapeo simple
-        if 'btc' in asset_id: return 'BTC/USDT'
-        if 'eth' in asset_id: return 'ETH/USDT'
-        if 'sol' in asset_id: return 'SOL/USDT'
-        if 'ada' in asset_id: return 'ADA/USDT'
+        asset_id = asset_id.lower()
         
-        # Por defecto BTC si no encuentra
-        return 'BTC/USDT'
+        # Criptomonedas (Kraken)
+        if 'btc' in asset_id: return 'BTC/USD'
+        if 'eth' in asset_id: return 'ETH/USD'
+        if 'sol' in asset_id: return 'SOL/USD'
+        if 'ada' in asset_id: return 'ADA/USD'
+        
+        # Kraken tiene algunos pares Forex, pero son limitados.
+        # Si pide algo que no es Cripto, devolvemos BTC por defecto para que no falle.
+        return 'BTC/USD'
 
     def get_real_price(self, asset_id):
-        """Obtiene el precio REAL actual de Binance"""
+        """Obtiene el precio REAL actual de Kraken"""
         try:
+            # Si es un activo que no es cripto (ej: S&P 500), simulamos un precio
+            # porque Kraken es solo de Criptos.
+            if "index" in asset_id or "stock" in asset_id or "commodity" in asset_id:
+                # Simulación básica para no romper la app en stocks
+                return 0.0 
+            
             symbol = self._get_ccxt_symbol(asset_id)
             ticker = self.exchange.fetch_ticker(symbol)
             return ticker['last']
         except Exception as e:
-            print(f"Error obteniendo precio: {e}")
+            print(f"Error obteniendo precio ({asset_id}): {e}")
             return 0.0
 
     # --- FUNCIONES DE USUARIO (SIN CAMBIOS) ---
@@ -58,7 +69,7 @@ class MainViewModel:
                 "username": username, "email": email,
                 "created_at": datetime.datetime.now(datetime.UTC).isoformat(),
                 "selected_market": "crypto", "risk": "medio", "experience": "novato",
-                "saldo_virtual": 10000.0 # <--- AGREGAMOS SALDO INICIAL REALISTA
+                "saldo_virtual": 10000.0
             }
             self.db_service.save_user_profile(uid, profile_data, id_token)
             default_settings = {
@@ -71,7 +82,6 @@ class MainViewModel:
 
     def get_user_profile(self, user_id, token):
         profile = self.db_service.get_user_profile(user_id, token)
-        # Si no tiene saldo virtual, le ponemos por defecto para que no falle
         if profile and 'saldo_virtual' not in profile:
             profile['saldo_virtual'] = 10000.0
         return profile if profile else {"username": "Usuario", "saldo_virtual": 10000.0}
@@ -129,80 +139,66 @@ class MainViewModel:
             print(f"Error al desactivar el bot: {e}")
             return False
 
-    # --- NUEVA LÓGICA: EJECUCIÓN REAL DEL BOT (PAPER TRADING) ---
+    # --- PAPER TRADING / BOT REAL ---
     def check_bot_execution(self, user_id, token):
-        """
-        Esta función se llamará cada vez que cargue el dashboard.
-        Si el bot está activo, revisa el mercado y 'simula' una operación real.
-        """
         settings = self.get_bot_settings_data(user_id, token)
-        if not settings.get('isActive'):
-            return # El bot está apagado
+        if not settings.get('isActive'): return
 
         asset_id = settings.get('activo', 'crypto_btc_usd')
+        
+        # Kraken no tiene stocks/indices, así que evitamos ejecutar el bot ahí para no dar error
+        if "crypto" not in asset_id and "forex" not in asset_id:
+            return 
+
         symbol = self._get_ccxt_symbol(asset_id)
         
-        # 1. Obtener precio real
         try:
             current_price = self.get_real_price(asset_id)
-            if current_price == 0: return
-        except:
-            return
+            if current_price == 0: return # Precio inválido
 
-        # 2. Lógica simple de Trading (Ej: Cruce de Medias Móviles)
-        try:
+            # Obtenemos velas históricas para decidir (1 hora)
             ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe='1h', limit=20)
             df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
             
-            # Calculamos Media Móvil Simple (SMA) de 14 periodos
             sma_14 = df['close'].rolling(window=14).mean().iloc[-1]
             last_close = df['close'].iloc[-1]
             
             accion = "MANTENER"
             motivo = "Mercado lateral"
             
-            # Estrategia: Si el precio cruza hacia arriba la media -> COMPRA
-            if last_close > (sma_14 * 1.001): # 0.1% arriba
+            # Estrategia Básica
+            if last_close > (sma_14 * 1.002): # 0.2% arriba
                 accion = "COMPRA"
-                motivo = f"Precio ({last_close}) supera la Media Móvil ({round(sma_14, 2)})"
-            elif last_close < (sma_14 * 0.999):
+                motivo = f"Precio ({last_close}) supera SMA14 ({round(sma_14, 2)})"
+            elif last_close < (sma_14 * 0.998):
                 accion = "VENTA"
-                motivo = f"Precio ({last_close}) cae bajo la Media Móvil ({round(sma_14, 2)})"
+                motivo = f"Precio ({last_close}) cae bajo SMA14 ({round(sma_14, 2)})"
             
-            # 3. Si hay acción, registramos el Trade simulado en Firebase
             if accion != "MANTENER":
-                # Verificamos si ya operamos hace poco para no hacer spam (opcional)
                 nuevo_trade = {
                     "tipo": accion,
                     "activo": symbol,
-                    "precio_entrada": float(current_price), # Aseguramos que sea número
-                    "cantidad": 0.01, # Fijo por ahora
+                    "precio_entrada": float(current_price),
+                    "cantidad": 0.01,
                     "pnl": 0.0,
                     "pnl_acumulado": 0.0,
                     "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "motivo": motivo
                 }
-                
-                # --- AQUÍ GUARDAMOS DE VERDAD ---
                 self.bot_service.record_trade(user_id, nuevo_trade, token)
-                print(f"Trade Paper ejecutado: {accion} {symbol}")
+                print(f"✅ Paper Trade: {accion} {symbol}")
                 
         except Exception as e:
-            print(f"Error en lógica del bot: {e}")
+            print(f"Bot execution error: {e}")
 
 
     def get_dashboard_data(self, user_id, token):
         try:
-            # 1. Ejecutamos el bot (si está activo)
             self.check_bot_execution(user_id, token)
-
             profile = self.get_user_profile(user_id, token)
             settings = self.get_bot_settings_data(user_id, token)
-            
-            # Inyectamos precio real en settings para usarlo en la vista si queremos
             current_price = self.get_real_price(settings.get('activo'))
             settings['current_price'] = current_price
-
             return {"profile": profile, "settings": settings}
         except Exception as e:
             print(f"Error dashboard: {e}")
@@ -211,56 +207,62 @@ class MainViewModel:
                 "settings": {"activo": "crypto_btc_usd", "isActive": False}
             }
 
-    # --- ANÁLISIS IA REAL ---
+    # --- ANÁLISIS IA REAL (CON KRAKEN) ---
     def get_ai_analysis(self, user_id, token, asset_name):
-        """
-        Genera un análisis basado en indicadores técnicos REALES 
-        usando Pandas y datos de Binance.
-        """
         try:
+            # Filtro de Seguridad: Si no es Cripto, damos un mensaje genérico simulado
+            # (Porque Kraken fallará con stocks)
+            if "stock" in asset_name.lower() or "index" in asset_name.lower() or "oro" in asset_name.lower():
+                return f"""
+                <strong>Análisis de Mercado para {asset_name}</strong><br>
+                <br>
+                NOTA: Datos en tiempo real solo disponibles para Criptomonedas por ahora.<br>
+                Tendencia proyectada: <strong>NEUTRAL</strong><br>
+                Se recomienda consultar fuentes externas para Stocks y Commodities.
+                """
+
             symbol = self._get_ccxt_symbol(f"crypto_{asset_name.lower()}")
             
-            # 1. Obtenemos datos históricos (Velas de 4 horas)
+            # Datos de Kraken
             ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe='4h', limit=50)
-            if not ohlcv: return "No hay datos de mercado disponibles."
+            if not ohlcv: return "Datos insuficientes para análisis."
             
             df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
             current_price = df['close'].iloc[-1]
             
-            # 2. Calculamos RSI (Índice de Fuerza Relativa) - Manualmente simple
+            # Indicadores
             delta = df['close'].diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
             rs = gain / loss
             rsi = 100 - (100 / (1 + rs)).iloc[-1]
             
-            # 3. Calculamos Tendencia (Media Móvil 20 vs 50)
             sma_20 = df['close'].rolling(window=20).mean().iloc[-1]
             sma_50 = df['close'].rolling(window=50).mean().iloc[-1]
             
             tendencia = "ALCISTA 🟢" if sma_20 > sma_50 else "BAJISTA 🔴"
             sentimiento = "NEUTRAL"
+            if rsi > 70: sentiment = "SOBRECOMPRA ⚠️"
+            elif rsi < 30: sentiment = "SOBREVENTA 🚀"
+            else: sentiment = "ESTABLE"
             
-            if rsi > 70: sentimiento = "SOBRECOMPRA (Posible caída) ⚠️"
-            elif rsi < 30: sentimiento = "SOBREVENTA (Posible rebote) 🚀"
-            
-            # 4. Generamos el texto
             analisis = f"""
-            <strong>Análisis Técnico en Vivo para {symbol}</strong><br>
-            Precio Actual: ${current_price:,.2f}<br>
-            Tendencia CP: <strong>{tendencia}</strong><br>
-            RSI (14): {round(rsi, 2)} - {sentimiento}<br>
+            <strong>Análisis Técnico (Kraken Feed) para {symbol}</strong><br>
+            Precio: ${current_price:,.2f}<br>
+            Tendencia: <strong>{tendencia}</strong><br>
+            RSI (14): {round(rsi, 2)} ({sentiment})<br>
             <br>
-            La IA detecta que el precio se comporta según patrones técnicos estándar. 
-            {'Se recomienda precaución por volatilidad alta.' if rsi > 70 or rsi < 30 else 'El mercado muestra estabilidad relativa.'}
+            Análisis algorítmico basado en velas de 4 horas. 
+            {'Alta probabilidad de corrección.' if rsi > 70 else 'Posible oportunidad de entrada.' if rsi < 30 else 'El mercado espera confirmación de volumen.'}
             """
             return analisis
 
         except Exception as e:
-            print(f"Error AI Real: {e}")
-            return "El mercado está desconectado temporalmente. Revisa tu conexión."
+            # Dejamos el print para logs, pero retornamos un mensaje amigable
+            print(f"Error AI: {e}")
+            return f"Error de conexión con el mercado: {str(e)}"
 
-    # --- RESTO DE FUNCIONES (API KEYS, ETC) ---
+    # --- RESTO DE FUNCIONES ---
     def get_api_keys_data(self, user_id, token):
         keys = self.bot_service.get_api_keys(user_id, token)
         return [value for key, value in keys.items()] if keys else []
@@ -273,7 +275,6 @@ class MainViewModel:
         return self.bot_service.delete_api_key(user_id, exchange_name, token)
 
     def generate_mock_trades(self, user_id, token):
-        # Mantenemos esto para 'backtesting' histórico falso si el usuario quiere probar
         settings = self.get_bot_settings_data(user_id, token)
         asset_seleccionado = settings.get("activo", "crypto_btc_usd")
         return self.bot_service.generate_mock_trade_log(user_id, token, asset_seleccionado)
@@ -285,8 +286,6 @@ class MainViewModel:
         return self.auth_service.reset_password(email)
 
     def get_performance_data(self, user_id, token):
-        # Esta funcion sigue leyendo de Firebase, asi que mostrará
-        # los trades que guardes (ya sean mock o reales)
         trade_log = self.bot_service.get_trade_log(user_id, token)
         trade_list, labels_grafica, data_grafica = [], [], []
         ganancia_total, trades_ganadores, total_trades = 0.0, 0, 0
@@ -306,16 +305,13 @@ class MainViewModel:
                 etiqueta_corta = ts[1] if len(ts) == 2 else ts[0] 
                 labels_grafica.append(etiqueta_corta)
                 
-                # Ajuste para soportar trades viejos y nuevos
                 pnl = trade.get('pnl', 0)
-                # Si es un trade nuevo del bot, quizás no tiene pnl_acumulado calculado, lo hacemos al vuelo
                 if 'pnl_acumulado' in trade:
                     acumulado = trade['pnl_acumulado']
                 else:
                     acumulado += pnl
                 
                 data_grafica.append(acumulado)
-                
                 if pnl > 0: trades_ganadores += 1
                 ganancia_total = acumulado 
 
