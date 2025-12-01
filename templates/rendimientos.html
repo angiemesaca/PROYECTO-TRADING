@@ -1,161 +1,128 @@
 {% extends "base.html" %}
 
-{% block title %}Rendimiento del Bot{% endblock %}
+{% block title %}Rendimiento - Wallet Trainer{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    
-    <!-- Título y Botón de Backtest -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="d-flex align-items-center">
-            <span class="text-primary me-3">
-                <i class="bi bi-graph-up-arrow" style="font-size: 2.5rem;"></i>
-            </span>
-            <div>
-                <h1 class="display-5 fw-bold text-white">Rendimiento del Bot</h1>
-                <p class="fs-5 text-white-50">Análisis de las operaciones simuladas por tu estrategia.</p>
-            </div>
-        </div>
-        
-        <!-- 
-          ¡EL BOTÓN DE NUESTRO PIVOT!
-          Esto llama a la nueva ruta /run_backtest
-        -->
-        <div class="d-flex gap-2">
-            <form action="{{ url_for('run_backtest') }}" method="POST">
-                <button type="submit" class="btn btn-primary btn-lg shadow">
-                    <i class="bi bi-play-fill"></i> Ejecutar Simulación
-                </button>
-            </form>
-            <form action="{{ url_for('clear_history') }}" method="POST">
-                <button type="submit" class="btn btn-outline-danger btn-lg">
-                    <i class="bi bi-trash"></i> Limpiar
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Estadísticas Clave -->
-    <div class="row g-4 mb-4">
-        <!-- Tarjeta de Ganancia Neta -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow-sm border-0 h-100 bg-dark text-white">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-white-50 small text-uppercase fw-bold">Ganancia Neta Total</h3>
-                    <p class="display-6 fw-bold text-white mt-2">
+<div class="row g-4 fade-in">
+    <div class="col-12">
+        <h2 class="text-white fw-bold mb-4">Rendimiento de la Cuenta</h2>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="card bg-dark border-secondary p-3">
+                    <span class="text-secondary small text-uppercase">Ganancia Total (Simulada)</span>
+                    <h3 class="text-{{ 'success' if stats.ganancia_total >= 0 else 'danger' }} fw-bold mb-0">
                         ${{ "%.2f"|format(stats.ganancia_total) }}
-                    </p>
-                    {% if stats.ganancia_total > 0 %}
-                        <span class="text-success small"><i class="bi bi-arrow-up"></i> +${{ "%.2f"|format(stats.ganancia_total) }} vs inicio</span>
-                    {% elif stats.ganancia_total < 0 %}
-                        <span class="text-danger small"><i class="bi bi-arrow-down"></i> -${{ "%.2f"|format(stats.ganancia_total|abs) }} vs inicio</span>
-                    {% else %}
-                        <span class="text-white-50 small">Sin cambios</span>
-                    {% endif %}
+                    </h3>
                 </div>
             </div>
-        </div>
-        <!-- Tarjeta de Win Rate -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow-sm border-0 h-100 bg-dark text-white">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-white-50 small text-uppercase fw-bold">Win Rate</h3>
-                    <p class="display-6 fw-bold text-white mt-2">{{ "%.1f"|format(stats.win_rate) }}%</p>
-                    <span class="text-white-50 small">{{ stats.trades_ganadores }} de {{ stats.total_trades }} trades</span>
+            <div class="col-md-3">
+                <div class="card bg-dark border-secondary p-3">
+                    <span class="text-secondary small text-uppercase">Total Trades</span>
+                    <h3 class="text-white fw-bold mb-0">{{ stats.total_trades }}</h3>
                 </div>
             </div>
-        </div>
-        <!-- Tarjeta de Operaciones Totales -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow-sm border-0 h-100 bg-dark text-white">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-white-50 small text-uppercase fw-bold">Operaciones Totales</h3>
-                    <p class="display-6 fw-bold text-white mt-2">{{ stats.total_trades }}</p>
-                    <span class="text-white-50 small">Trades ejecutados</span>
+            <div class="col-md-3">
+                <div class="card bg-dark border-secondary p-3">
+                    <span class="text-secondary small text-uppercase">Win Rate</span>
+                    <h3 class="text-info fw-bold mb-0">{{ stats.win_rate }}%</h3>
                 </div>
             </div>
-        </div>
-        <!-- Tarjeta de Trades Ganadores -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow-sm border-0 h-100 bg-dark text-white">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-white-50 small text-uppercase fw-bold">Trades Ganadores</h3>
-                    <p class="display-6 fw-bold text-white mt-2">{{ stats.trades_ganadores }}</p>
-                    <span class="text-white-50 small">Operaciones con PNL positivo</span>
+            <div class="col-md-3">
+                <div class="card bg-dark border-secondary p-3">
+                    <span class="text-secondary small text-uppercase">Saldo Virtual</span>
+                    <h3 class="text-warning fw-bold mb-0">$10,000.00</h3>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Gráfica y Tabla -->
-    <div class="row g-4">
-        <!-- Gráfica de Avance -->
-        <div class="col-12">
-            <div class="card shadow-sm border-0 bg-dark text-white">
-                <div class="card-body p-4">
-                    <h2 class="h4 fw-bold text-white mb-4">Avance de Capital (PNL Acumulado)</h2>
-                    {% if trades %}
-                        <div style="height: 350px;">
-                            <canvas id="pnlChart"></canvas>
-                        </div>
-                    {% else %}
-                        <p class="text-white-50">No hay suficientes datos para mostrar la gráfica. Ejecuta una simulación para empezar.</p>
-                    {% endif %}
-                </div>
+    <div class="col-lg-8">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-header border-secondary">
+                <i class="bi bi-graph-up text-primary"></i> Curva de Capital (PnL Acumulado)
+            </div>
+            <div class="card-body">
+                <canvas id="pnlChart" style="max-height: 300px;"></canvas>
             </div>
         </div>
+    </div>
 
-        <!-- Historial de Operaciones -->
-        <div class="col-12">
-            <div class="card shadow-sm border-0 bg-dark text-white">
-                <div class="card-body p-4">
-                    <h2 class="h4 fw-bold text-white mb-4">Historial de Operaciones</h2>
-                    <div class="table-responsive">
-                        <table class="table table-dark table-striped table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Timestamp</th>
-                                    <th scope="col">Activo</th>
-                                    <th scope="col">Tipo</th>
-                                    <th scope="col">Precio</th>
-                                    <th scope="col">PNL ($)</th>
-                                    <th scope="col">PNL Acumulado ($)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if trades %}
-                                    {% for trade in trades|reverse %}
-                                    <tr>
-                                        <td class="text-white-50">{{ trade.timestamp }}</td>
-                                        <td class="fw-bold">{{ trade.asset }}</td>
-                                        <td>
-                                            {% if trade.type == 'buy' %}
-                                                <span class="badge text-bg-success">Compra</span>
-                                            {% else %}
-                                                <span class="badge text-bg-danger">Venta</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>${{ "%.2f"|format(trade.price) }}</td>
-                                        <td class{% if trade.pnl > 0 %}"text-success"{% elif trade.pnl < 0 %}"text-danger"{% else %}""{% endif %}>
-                                            {{ "%.2f"|format(trade.pnl) }}
-                                        </td>
-                                        <td class="fw-bold">
-                                            {{ "%.2f"|format(trade.pnl_acumulado) }}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                {% else %}
-                                    <tr>
-                                        <td colspan="6" class="text-center text-white-50 py-5">
-                                            No hay operaciones en el historial.
-                                            <br>
-                                            <span class="small">Haz clic en "Ejecutar Simulación" para generar un backtest.</span>
-                                        </td>
-                                    </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
+    <div class="col-lg-4">
+        <div class="card bg-dark border-secondary h-100">
+            <div class="card-header border-secondary">
+                <i class="bi bi-lightning-charge text-warning"></i> Herramientas
+            </div>
+            <div class="card-body d-flex flex-column gap-3">
+                <div class="alert alert-info bg-opacity-10 border-info text-info small mb-0">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Las operaciones mostradas aquí son simulaciones de Paper Trading basadas en precios reales.
+                </div>
+                
+                <form action="{{ url_for('run_backtest') }}" method="POST">
+                    <button type="submit" class="btn btn-outline-light w-100 text-start">
+                        <i class="bi bi-play-btn me-2"></i> Ejecutar Backtest Rápido
+                    </button>
+                </form>
+
+                <form action="{{ url_for('clear_history') }}" method="POST" onsubmit="return confirm('¿Borrar todo el historial?');">
+                    <button type="submit" class="btn btn-outline-danger w-100 text-start">
+                        <i class="bi bi-trash me-2"></i> Resetear Historial
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-ul"></i> Historial de Operaciones</span>
+                <span class="badge bg-secondary">{{ stats.total_trades }} registros</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0 align-middle">
+                        <thead class="bg-black text-secondary small text-uppercase">
+                            <tr>
+                                <th class="ps-4">Fecha</th>
+                                <th>Activo</th>
+                                <th>Tipo</th>
+                                <th>Precio Entrada</th>
+                                <th>Motivo / Señal</th>
+                                <th class="text-end pe-4">PnL</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trade in trades|reverse %}
+                            <tr>
+                                <td class="ps-4 text-secondary small">{{ trade.timestamp }}</td>
+                                <td class="fw-bold">{{ trade.activo }}</td>
+                                <td>
+                                    {% if trade.tipo == 'COMPRA' %}
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success">COMPRA</span>
+                                    {% else %}
+                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger">VENTA</span>
+                                    {% endif %}
+                                </td>
+                                <td class="font-monospace">${{ "%.2f"|format(trade.precio_entrada|float) }}</td>
+                                <td class="small text-secondary fst-italic">{{ trade.motivo }}</td>
+                                <td class="text-end pe-4 font-monospace">
+                                    {% set pnl = trade.pnl|default(0)|float %}
+                                    <span class="text-{{ 'success' if pnl >= 0 else 'danger' }}">
+                                        {{ "+" if pnl > 0 else "" }}{{ "%.2f"|format(pnl) }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-secondary">
+                                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                                    No hay operaciones registradas aún.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -164,71 +131,49 @@
 {% endblock %}
 
 {% block page_scripts %}
-<!-- Script para Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', (event) => {
-    const labels = {{ labels|tojson }};
-    if (labels && labels.length > 0) {
-        const ctx = document.getElementById('pnlChart').getContext('2d');
-        const pnlData = {{ pnl_data|tojson }};
-        
-        // Estilo de Bootstrap Dark
-        Chart.defaults.color = '#adb5bd';
-        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+    // Configuración del Gráfico de PnL
+    const ctx = document.getElementById('pnlChart');
+    
+    // Datos inyectados desde Flask
+    const labels = {{ labels | tojson }};
+    const dataPoints = {{ pnl_data | tojson }};
 
-        const myChart = new Chart(ctx, {
+    if (ctx) {
+        new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'PNL Acumulado ($)',
-                    data: pnlData,
-                    borderColor: '#0d6efd', // Azul de Bootstrap
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    label: 'Capital Acumulado ($)',
+                    data: dataPoints,
+                    borderColor: '#0ecb81', // Verde Binance
+                    backgroundColor: 'rgba(14, 203, 129, 0.1)',
                     borderWidth: 2,
-                    pointBackgroundColor: '#0d6efd',
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                    fill: 'origin',
-                    tension: 0.1
+                    tension: 0.4,
+                    pointRadius: 0,
+                    fill: true
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
                 scales: {
                     y: {
-                        beginAtZero: false,
-                        ticks: {
-                            callback: function(value) { return '$' + value; }
-                        }
+                        grid: { color: '#2b3139' },
+                        ticks: { color: '#848e9c' }
                     },
                     x: {
-                        ticks: { maxTicksLimit: 10 }
-                    }
-                },
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: {
-                        backgroundColor: '#212529',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) { label += ': '; }
-                                if (context.parsed.y !== null) {
-                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
-                                }
-                                return label;
-                            }
-                        }
+                        grid: { display: false },
+                        ticks: { display: false } // Ocultamos fechas para limpieza
                     }
                 }
             }
         });
     }
-});
 </script>
 {% endblock %}

@@ -23,13 +23,16 @@ class MainViewModel:
 
     # --- LÓGICA HÍBRIDA (ROUTER) ---
     def _get_symbol_and_source(self, asset_id):
-        """
-        El 'Cerebro' que decide a quién preguntar el precio.
-        Retorna: (simbolo_api, fuente)
-        """
+        # ... (inicio de la función) ...
         if not asset_id: return ('BTC/USD', 'crypto')
         asset_id = asset_id.lower()
         
+        # --- COLOMBIA (ADRs en NYSE) ---
+        if 'ecopetrol' in asset_id: return ('EC', 'yahoo')
+        if 'bancolombia' in asset_id: return ('CIB', 'yahoo')
+        if 'aval' in asset_id: return ('AVAL', 'yahoo')
+        if 'nubank' in asset_id: return ('NU', 'yahoo') # NuBank también es popular
+
         # --- CRIPTOS (Kraken) ---
         if 'btc' in asset_id: return ('BTC/USD', 'crypto')
         if 'eth' in asset_id: return ('ETH/USD', 'crypto')

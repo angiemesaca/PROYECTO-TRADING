@@ -9,18 +9,43 @@
         <h2 class="fw-bold text-white mb-0">Panel de Control</h2>
         <p class="text-secondary mb-0">Bienvenido, <span class="text-warning">{{ profile.username }}</span></p>
     </div>
-    <a href="{{ url_for('bot_settings') }}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-gear-fill"></i> Configuración
-    </a>
+    
+    <form action="{{ url_for('bot_settings') }}" method="POST" class="d-flex gap-2">
+        <input type="hidden" name="riesgo" value="{{ settings.riesgo }}">
+        <input type="hidden" name="indicadores" value="{{ settings.indicadores }}">
+        <input type="hidden" name="horario" value="{{ settings.horario }}">
+        
+        <select name="activo" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="this.form.submit()">
+            <optgroup label="Criptomonedas">
+                <option value="crypto_btc_usd" {% if settings.activo == 'crypto_btc_usd' %}selected{% endif %}>Bitcoin (BTC)</option>
+                <option value="crypto_eth_usd" {% if settings.activo == 'crypto_eth_usd' %}selected{% endif %}>Ethereum (ETH)</option>
+                <option value="crypto_sol_usd" {% if settings.activo == 'crypto_sol_usd' %}selected{% endif %}>Solana (SOL)</option>
+            </optgroup>
+            
+            <optgroup label="Empresas Colombia (ADR)">
+                <option value="stock_ecopetrol" {% if settings.activo == 'stock_ecopetrol' %}selected{% endif %}>Ecopetrol (EC)</option>
+                <option value="stock_bancolombia" {% if settings.activo == 'stock_bancolombia' %}selected{% endif %}>Bancolombia (CIB)</option>
+                <option value="stock_aval" {% if settings.activo == 'stock_aval' %}selected{% endif %}>Grupo Aval (AVAL)</option>
+            </optgroup>
+
+            <optgroup label="Mercado Global">
+                <option value="stock_tsla" {% if settings.activo == 'stock_tsla' %}selected{% endif %}>Tesla (TSLA)</option>
+                <option value="stock_aapl" {% if settings.activo == 'stock_aapl' %}selected{% endif %}>Apple (AAPL)</option>
+                <option value="stock_nubank" {% if settings.activo == 'stock_nubank' %}selected{% endif %}>NuBank (NU)</option>
+                <option value="forex_eur_usd" {% if settings.activo == 'forex_eur_usd' %}selected{% endif %}>EUR / USD</option>
+                <option value="commodity_oro" {% if settings.activo == 'commodity_oro' %}selected{% endif %}>Oro (Gold)</option>
+            </optgroup>
+        </select>
+    </form>
 </div>
 
 <div class="row g-4">
     
     <div class="col-lg-9">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-activity text-warning me-2"></i>Mercado en Vivo: {{ settings.activo|replace('_', ' ')|upper }}</span>
-                <span class="badge bg-dark border border-secondary text-secondary">1D Timeframe</span>
+        <div class="card h-100 bg-dark border-secondary">
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-activity text-warning me-2"></i>Mercado en Vivo: <span class="text-white fw-bold">{{ settings.activo.split('_')[-1]|upper }}</span></span>
+                <span class="badge bg-secondary">Precio Actual: ${{ "%.2f"|format(settings.current_price|float) }}</span>
             </div>
             <div class="card-body p-0">
                 <div id="tv-mini-chart-widget-container" style="height: 500px; width: 100%; border-radius: 0 0 8px 8px;"></div>
@@ -30,8 +55,8 @@
 
     <div class="col-lg-3">
         
-        <div class="card mb-3">
-            <div class="card-header">
+        <div class="card mb-3 bg-dark border-secondary">
+            <div class="card-header border-secondary">
                 <i class="bi bi-cpu"></i> Motor de Trading
             </div>
             <div class="card-body text-center">
@@ -61,9 +86,7 @@
                     <div class="col-6">
                         <div class="metric-box">
                             <div class="metric-label">Riesgo</div>
-                            
                             {% set risk_class = 'success' if settings.riesgo == 'bajo' else 'warning' if settings.riesgo == 'medio' else 'danger' %}
-                            
                             <div class="metric-value text-{{ risk_class }}">
                                 {{ settings.riesgo|upper }}
                             </div>
@@ -87,8 +110,8 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header border-0 pb-0">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header border-secondary pb-0">
                 <i class="bi bi-robot text-primary"></i> Análisis IA
             </div>
             <div class="card-body">
@@ -96,11 +119,11 @@
                     Basado en tus parámetros de riesgo y el activo seleccionado.
                 </p>
                 
-                <div class="p-3 rounded bg-dark border border-secondary mb-3">
-                    <h6 class="text-white mb-1"><i class="bi bi-chat-square-quote-fill me-2 text-warning"></i>Sugerencia:</h6>
-                    <p class="mb-0 small fst-italic text-light">
-                        "{{ ai_snippet if ai_snippet else 'Análisis pendiente...' }}"
-                    </p>
+                <div class="p-3 rounded bg-black border border-secondary mb-3">
+                    <h6 class="text-white mb-1"><i class="bi bi-terminal me-2 text-warning"></i>Sugerencia:</h6>
+                    <div class="mb-0 small text-light font-monospace">
+                        {{ ai_snippet | safe }}
+                    </div>
                 </div>
 
                 <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-primary btn-sm w-100">
@@ -117,47 +140,34 @@
 {% block page_scripts %}
 <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 <script type="text/javascript">
-    
-    // --- SOLUCIÓN DEL ERROR ---
-    // Usamos comillas "" por fuera para que Javascript no llore,
-    // y usamos 'default' por si la base de datos no trae el dato.
     const currentAsset = "{{ settings.activo if settings and settings.activo else 'crypto_btc_usd' }}";
     
-    // Debug: Muestra en la consola (F12) qué valor llegó realmente
-    console.log("Activo actual recibido:", currentAsset);
-
-    // Función para mapear tus IDs de activos a símbolos de TradingView
     function getTradingViewSymbol(assetName) {
         if (!assetName) return "BINANCE:BTCUSDT";
-        
-        // Convertimos a minúsculas para evitar errores
         const lower = assetName.toLowerCase();
 
-        // Mapeo de Criptos
+        // Colombia (NYSE ADRs)
+        if (lower.includes("ecopetrol")) return "NYSE:EC";
+        if (lower.includes("bancolombia")) return "NYSE:CIB";
+        if (lower.includes("aval")) return "NYSE:AVAL";
+        if (lower.includes("nubank")) return "NYSE:NU";
+
+        // Criptos
         if (lower.includes("btc")) return "BINANCE:BTCUSDT";
         if (lower.includes("eth")) return "BINANCE:ETHUSDT";
         if (lower.includes("sol")) return "BINANCE:SOLUSDT";
-        if (lower.includes("ada")) return "BINANCE:ADAUSDT";
         
-        // Mapeo de Forex
-        if (lower.includes("eur")) return "FX:EURUSD";
-        if (lower.includes("jpy")) return "FX:USDJPY";
-        if (lower.includes("gbp")) return "FX:GBPUSD";
-        
-        // Mapeo de Acciones
+        // ... (El resto sigue igual: Stocks, Forex, etc.) ...
         if (lower.includes("tsla")) return "NASDAQ:TSLA";
         if (lower.includes("aapl")) return "NASDAQ:AAPL";
-        
-        // Indices y Commodities
-        if (lower.includes("spx")) return "OANDA:SPX500USD";
+        if (lower.includes("eur")) return "FX:EURUSD";
         if (lower.includes("oro") || lower.includes("gold")) return "OANDA:XAUUSD";
         
-        return "BINANCE:BTCUSDT"; // Valor por defecto si no encuentra coincidencia
+        return "BINANCE:BTCUSDT";
     }
 
     const tvSymbol = getTradingViewSymbol(currentAsset);
 
-    // Inicializar Widget
     new TradingView.widget({
       "autosize": true,
       "symbol": tvSymbol,
