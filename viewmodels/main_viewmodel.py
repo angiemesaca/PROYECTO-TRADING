@@ -336,14 +336,12 @@ class MainViewModel:
         trade_log = self.bot_service.get_trade_log(user_id, token)
         trade_list, labels_grafica, data_grafica = [], [], []
         
-        # Variables para el Portafolio
-        holdings = {} # Diccionario para agrupar: {'BTC/USD': 0.5, 'AAPL': 10}
+        # Estructura: {'BTC/USD': {'qty': 0.5, 'total_cost': 25000.0}}
+        holdings = {} 
         
-        # 1. Obtener Datos Básicos
         profile = self.get_user_profile(user_id, token)
         saldo_cash = float(profile.get('saldo_virtual', 100000.0))
         
-        # 2. Procesar Historial
         if trade_log:
             try: sorted_trades = sorted(trade_log.values(), key=lambda x: x.get('timestamp', ''))
             except: sorted_trades = trade_log.values()
@@ -353,75 +351,90 @@ class MainViewModel:
                 labels_grafica.append(trade.get('timestamp', '')[5:16]) 
                 data_grafica.append(trade.get('saldo_resultante', 0))
                 
-                # Calcular Inventario (Holdings)
+                # --- CÁLCULO DE INVENTARIO Y COSTO PROMEDIO ---
                 asset = trade.get('activo')
                 qty = float(trade.get('cantidad', 0))
+                price = float(trade.get('precio_entrada', 0))
                 tipo = trade.get('tipo')
                 
-                if asset not in holdings: holdings[asset] = 0.0
+                if asset not in holdings: 
+                    holdings[asset] = {'qty': 0.0, 'total_cost': 0.0}
                 
-                if tipo == 'COMPRA': holdings[asset] += qty
-                elif tipo == 'VENTA': holdings[asset] -= qty
+                if tipo == 'COMPRA':
+                    holdings[asset]['qty'] += qty
+                    holdings[asset]['total_cost'] += (qty * price)
+                elif tipo == 'VENTA':
+                    # Al vender, reducimos el costo proporcionalmente para mantener el precio promedio
+                    # Evitamos div/0
+                    if holdings[asset]['qty'] > 0:
+                        avg_price = holdings[asset]['total_cost'] / holdings[asset]['qty']
+                        holdings[asset]['total_cost'] -= (qty * avg_price)
+                    
+                    holdings[asset]['qty'] -= qty
 
-        # 3. Calcular Valor Actual del Portafolio (Para la Dona)
+        # Preparar datos para la vista
         portfolio_labels = ["Efectivo (USD)"]
         portfolio_data = [saldo_cash]
-        
         total_portfolio_value = saldo_cash
-        lista_posiciones = [] # Lista detallada para la tabla de "Mis Activos"
+        lista_posiciones = [] 
 
-        for asset, qty in holdings.items():
-            if qty > 0.00001: # Solo mostramos si tienes algo (evitamos residuos de 0.000001)
-                # Obtenemos precio real actual para valorar tu portafolio
-                # (Usamos un try/except interno para no bloquear si falla internet)
+        for asset, data in holdings.items():
+            qty = data['qty']
+            cost_basis = data['total_cost']
+            
+            if qty > 0.00001: 
                 try:
-                    # Truco: necesitamos el ID interno (ej: crypto_btc_usd) para llamar a get_real_price
-                    # Como aquí solo tenemos el símbolo (BTC/USD), hacemos una búsqueda rápida o
-                    # usamos el símbolo directamente si es compatible.
-                    # Para simplificar y hacerlo rápido, usaremos el precio de entrada del último trade
-                    # como referencia APROXIMADA si falla la API, pero intentaremos la API.
-                    
-                    # Buscamos mapear el simbolo inverso (chapuza rápida pero efectiva)
+                    # 1. Obtener Precio Actual Real
                     current_price = 0
                     if "BTC" in asset: current_price = self.get_real_price("crypto_btc_usd")
                     elif "ETH" in asset: current_price = self.get_real_price("crypto_eth_usd")
+                    elif "SOL" in asset: current_price = self.get_real_price("crypto_sol_usd")
+                    elif "EUR" in asset: current_price = self.get_real_price("forex_eur_usd")
                     elif "EC" in asset: current_price = self.get_real_price("stock_ecopetrol")
-                    # ... Si no coincide, valor 0 (o último precio registrado)
+                    elif "CIB" in asset: current_price = self.get_real_price("stock_bancolombia")
+                    elif "AVAL" in asset: current_price = self.get_real_price("stock_aval")
                     
-                    if current_price == 0: current_price = 1 # Evitar error div zero
+                    if current_price == 0: current_price = 1 
                     
-                    valor_posicion = qty * current_price
-                    total_portfolio_value += valor_posicion
+                    # 2. Calcular Valores
+                    valor_mercado = qty * current_price
+                    precio_promedio_compra = cost_basis / qty
                     
+                    # 3. Calcular PnL de la posición (No realizado)
+                    pnl_unrealized = valor_mercado - cost_basis
+                    pnl_percent = (pnl_unrealized / cost_basis) * 100 if cost_basis > 0 else 0
+
+                    total_portfolio_value += valor_mercado
                     portfolio_labels.append(asset)
-                    portfolio_data.append(round(valor_posicion, 2))
+                    portfolio_data.append(round(valor_mercado, 2))
                     
                     lista_posiciones.append({
                         "activo": asset,
                         "cantidad": qty,
+                        "precio_compra": precio_promedio_compra, # <--- NUEVO
                         "precio_actual": current_price,
-                        "valor_total": valor_posicion
+                        "valor_total": valor_mercado,
+                        "pnl_percent": pnl_percent # <--- NUEVO (Para ponerlo verde/rojo)
                     })
-                    
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Error calculando posición {asset}: {e}")
 
-        ganancia_total = total_portfolio_value - 100000.0 # Basado en Valor Total (Cash + Acciones) vs 100k iniciales
+        ganancia_total = total_portfolio_value - 100000.0 
 
         stats = {
             "ganancia_total": round(ganancia_total, 2), 
             "total_trades": len(trade_list),
-            "equity": total_portfolio_value # Valor total de la cuenta
+            "equity": total_portfolio_value 
         }
         
         return {
             "stats": stats, 
-            "all_trades": trade_list, # Historial completo
-            "current_holdings": lista_posiciones, # Lo que tienes ahora
+            "all_trades": trade_list, 
+            "current_holdings": lista_posiciones, 
             "grafica_labels": labels_grafica, 
             "grafica_data": data_grafica,
-            "pie_labels": portfolio_labels, # Para la Dona
-            "pie_data": portfolio_data      # Para la Dona
+            "pie_labels": portfolio_labels, 
+            "pie_data": portfolio_data
         }
 
     # ==============================================================================

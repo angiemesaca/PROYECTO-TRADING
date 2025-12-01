@@ -151,27 +151,56 @@
                             <table class="table table-dark table-hover mb-0 align-middle">
                                 <thead class="bg-black text-secondary small text-uppercase">
                                     <tr>
-                                        <th class="ps-4">Fecha</th>
-                                        <th>Activo</th>
-                                        <th>Acción</th>
-                                        <th>Precio</th>
-                                        <th class="text-end pe-4">Total</th>
+                                        <th class="ps-4">Activo</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Compra (Prom)</th>
+                                        <th>Precio Actual</th>
+                                        <th class="text-end pe-4">Valor Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for trade in all_trades|reverse %}
+                                    {% for item in current_holdings %}
                                     <tr>
-                                        <td class="ps-4 small text-secondary">{{ trade.timestamp }}</td>
-                                        <td class="fw-bold">{{ trade.activo }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ 'success' if trade.tipo == 'COMPRA' else 'danger' }} bg-opacity-25 text-{{ 'success' if trade.tipo == 'COMPRA' else 'danger' }} border border-{{ 'success' if trade.tipo == 'COMPRA' else 'danger' }}">
-                                                {{ trade.tipo }}
-                                            </span>
+                                        <td class="ps-4 fw-bold text-info">{{ item.activo }}</td>
+                                        <td class="font-monospace">{{ "%.4f"|format(item.cantidad) }}</td>
+                                        
+                                        <td class="text-secondary font-monospace">
+                                            ${{ "%.2f"|format(item.precio_compra) }}
                                         </td>
-                                        <td class="font-monospace text-secondary">${{ "%.2f"|format(trade.precio_entrada) }}</td>
-                                        <td class="text-end pe-4 font-monospace">${{ "%.2f"|format(trade.total_operacion) }}</td>
+
+                                        <td class="font-monospace">
+                                            ${{ "%.2f"|format(item.precio_actual) }}
+                                            {% if item.pnl_percent >= 0 %}
+                                                <span class="badge bg-success bg-opacity-10 text-success ms-2" style="font-size: 0.7em;">
+                                                    <i class="bi bi-arrow-up"></i> {{ "%.1f"|format(item.pnl_percent) }}%
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger bg-opacity-10 text-danger ms-2" style="font-size: 0.7em;">
+                                                    <i class="bi bi-arrow-down"></i> {{ "%.1f"|format(item.pnl_percent) }}%
+                                                </span>
+                                            {% endif %}
+                                        </td>
+
+                                        <td class="text-end pe-4 fw-bold text-white">${{ "%.2f"|format(item.valor_total) }}</td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-5 text-secondary">
+                                            <i class="bi bi-wallet2 fs-1 d-block mb-3"></i>
+                                            No tienes activos en cartera. Solo tienes Efectivo.
+                                        </td>
                                     </tr>
                                     {% endfor %}
+                                    
+                                    <tr class="bg-white bg-opacity-10">
+                                        <td class="ps-4 fw-bold text-warning">EFECTIVO (USD)</td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td class="text-end pe-4 fw-bold text-warning">
+                                            ${{ "%.2f"|format(stats.equity - (current_holdings|sum(attribute='valor_total'))) }}
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
