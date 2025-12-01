@@ -312,12 +312,18 @@ def sugerencias():
     if 'user_id' not in session:
         return redirect(url_for('home'))
     
-    # Pasamos los settings para que la página sepa el activo y riesgo
     user_id = session['user_id']
     token = session['id_token']
-    settings = vm.get_bot_settings_data(user_id, token)
     
-    return render_template('sugerencias.html', settings=settings)
+    # --- CORRECCIÓN: OBTENER PERFIL COMPLETO (SALDO) ---
+    data = vm.get_dashboard_data(user_id, token)
+    
+    # Pasamos 'profile' (donde está el dinero) y 'settings'
+    return render_template(
+        'sugerencias.html', 
+        settings=data['settings'], 
+        profile=data['profile'] 
+    )
 
 @app.route('/get_ai_suggestion', methods=['POST'])
 def get_ai_suggestion():

@@ -173,7 +173,7 @@
 let selectedAssetId = null;
 
 // Inicializamos el saldo visualmente
-document.getElementById('live-balance').innerText = "${{ '%.2f'|format(settings.get('saldo_virtual', 10000)|float) }}";
+document.getElementById('live-balance').innerText = "${{ '%.2f'|format(profile.get('saldo_virtual', 100000)|float) }}";
 
 document.addEventListener('DOMContentLoaded', () => {
     const assetButtons = document.querySelectorAll('#asset-list button');
