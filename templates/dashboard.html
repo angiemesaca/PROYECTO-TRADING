@@ -10,11 +10,7 @@
         <p class="text-secondary mb-0">Bienvenido, <span class="text-warning">{{ profile.username }}</span></p>
     </div>
     
-    <form action="{{ url_for('bot_settings') }}" method="POST" class="d-flex gap-2">
-        <input type="hidden" name="riesgo" value="{{ settings.riesgo }}">
-        <input type="hidden" name="indicadores" value="{{ settings.indicadores }}">
-        <input type="hidden" name="horario" value="{{ settings.horario }}">
-        
+    <form action="{{ url_for('update_dashboard_asset') }}" method="POST" class="d-flex gap-2">
         <select name="activo" class="form-select form-select-sm bg-dark text-white border-secondary" onchange="this.form.submit()">
             <optgroup label="Criptomonedas">
                 <option value="crypto_btc_usd" {% if settings.activo == 'crypto_btc_usd' %}selected{% endif %}>Bitcoin (BTC)</option>
@@ -31,7 +27,6 @@
             <optgroup label="Mercado Global">
                 <option value="stock_tsla" {% if settings.activo == 'stock_tsla' %}selected{% endif %}>Tesla (TSLA)</option>
                 <option value="stock_aapl" {% if settings.activo == 'stock_aapl' %}selected{% endif %}>Apple (AAPL)</option>
-                <option value="stock_nubank" {% if settings.activo == 'stock_nubank' %}selected{% endif %}>NuBank (NU)</option>
                 <option value="forex_eur_usd" {% if settings.activo == 'forex_eur_usd' %}selected{% endif %}>EUR / USD</option>
                 <option value="commodity_oro" {% if settings.activo == 'commodity_oro' %}selected{% endif %}>Oro (Gold)</option>
             </optgroup>
@@ -115,20 +110,34 @@
                 <i class="bi bi-robot text-primary"></i> Análisis IA
             </div>
             <div class="card-body">
-                <p class="small text-secondary mb-3">
-                    Basado en tus parámetros de riesgo y el activo seleccionado.
-                </p>
                 
-                <div class="p-3 rounded bg-black border border-secondary mb-3">
-                    <h6 class="text-white mb-1"><i class="bi bi-terminal me-2 text-warning"></i>Sugerencia:</h6>
-                    <div class="mb-0 small text-light font-monospace">
-                        {{ ai_snippet | safe }}
+                {% if settings.isActive %}
+                    <p class="small text-secondary mb-3">
+                        Basado en tus parámetros de riesgo y el activo seleccionado.
+                    </p>
+                    
+                    <div class="p-3 rounded bg-black border border-secondary mb-3">
+                        <h6 class="text-white mb-1"><i class="bi bi-terminal me-2 text-warning"></i>Sugerencia:</h6>
+                        <div class="mb-0 small text-light font-monospace">
+                            {{ ai_snippet | safe }}
+                        </div>
                     </div>
-                </div>
 
-                <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-primary btn-sm w-100">
-                    Ver Análisis Completo
-                </a>
+                    <a href="{{ url_for('sugerencias') }}" class="btn btn-outline-primary btn-sm w-100">
+                        Ver Análisis Completo
+                    </a>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-lock-fill fs-1 text-secondary opacity-50 mb-3 d-block"></i>
+                        <p class="text-white-50 small mb-0">
+                            El análisis de IA está desactivado.
+                        </p>
+                        <p class="text-warning small fw-bold">
+                            Enciende el Bot para recibir señales.
+                        </p>
+                    </div>
+                {% endif %}
+
             </div>
         </div>
 
@@ -146,21 +155,20 @@
         if (!assetName) return "BINANCE:BTCUSDT";
         const lower = assetName.toLowerCase();
 
-        // Colombia (NYSE ADRs)
         if (lower.includes("ecopetrol")) return "NYSE:EC";
         if (lower.includes("bancolombia")) return "NYSE:CIB";
         if (lower.includes("aval")) return "NYSE:AVAL";
-        if (lower.includes("nubank")) return "NYSE:NU";
-
-        // Criptos
+        
         if (lower.includes("btc")) return "BINANCE:BTCUSDT";
         if (lower.includes("eth")) return "BINANCE:ETHUSDT";
         if (lower.includes("sol")) return "BINANCE:SOLUSDT";
-        
-        // ... (El resto sigue igual: Stocks, Forex, etc.) ...
+        if (lower.includes("ada")) return "BINANCE:ADAUSDT";
+        if (lower.includes("eur")) return "FX:EURUSD";
+        if (lower.includes("jpy")) return "FX:USDJPY";
+        if (lower.includes("gbp")) return "FX:GBPUSD";
         if (lower.includes("tsla")) return "NASDAQ:TSLA";
         if (lower.includes("aapl")) return "NASDAQ:AAPL";
-        if (lower.includes("eur")) return "FX:EURUSD";
+        if (lower.includes("spx")) return "OANDA:SPX500USD";
         if (lower.includes("oro") || lower.includes("gold")) return "OANDA:XAUUSD";
         
         return "BINANCE:BTCUSDT";

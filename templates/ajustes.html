@@ -33,26 +33,24 @@
                             <label for="activo" class="form-label fw-bold text-info">Activo Financiero</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-secondary border-secondary text-white"><i class="bi bi-currency-exchange"></i></span>
-                                <select class="form-select bg-dark text-white border-secondary" name="activo" id="activo">
+                                <<select class="form-select bg-dark text-white border-secondary" id="activo" name="activo">
                                     <optgroup label="Criptomonedas">
-                                        <option value="crypto_btc_usd" {% if settings.activo == 'crypto_btc_usd' %}selected{% endif %}>Bitcoin (BTC/USD)</option>
-                                        <option value="crypto_eth_usd" {% if settings.activo == 'crypto_eth_usd' %}selected{% endif %}>Ethereum (ETH/USD)</option>
-                                        <option value="crypto_sol_usd" {% if settings.activo == 'crypto_sol_usd' %}selected{% endif %}>Solana (SOL/USD)</option>
-                                        <option value="crypto_ada_usd" {% if settings.activo == 'crypto_ada_usd' %}selected{% endif %}>Cardano (ADA/USD)</option>
+                                        <option value="crypto_btc_usd" {% if settings.activo == 'crypto_btc_usd' %}selected{% endif %}>Bitcoin (BTC)</option>
+                                        <option value="crypto_eth_usd" {% if settings.activo == 'crypto_eth_usd' %}selected{% endif %}>Ethereum (ETH)</option>
+                                        <option value="crypto_sol_usd" {% if settings.activo == 'crypto_sol_usd' %}selected{% endif %}>Solana (SOL)</option>
                                     </optgroup>
-                                    <optgroup label="Mercado Forex">
-                                        <option value="forex_eur_usd" {% if settings.activo == 'forex_eur_usd' %}selected{% endif %}>Euro (EUR/USD)</option>
-                                        <option value="forex_usd_jpy" {% if settings.activo == 'forex_usd_jpy' %}selected{% endif %}>Yen (USD/JPY)</option>
-                                        <option value="forex_gbp_usd" {% if settings.activo == 'forex_gbp_usd' %}selected{% endif %}>Libra (GBP/USD)</option>
+                            
+                                    <optgroup label="Empresas Colombia (ADR)">
+                                        <option value="stock_ecopetrol" {% if settings.activo == 'stock_ecopetrol' %}selected{% endif %}>Ecopetrol (EC)</option>
+                                        <option value="stock_bancolombia" {% if settings.activo == 'stock_bancolombia' %}selected{% endif %}>Bancolombia (CIB)</option>
+                                        <option value="stock_aval" {% if settings.activo == 'stock_aval' %}selected{% endif %}>Grupo Aval (AVAL)</option>
                                     </optgroup>
-                                    <optgroup label="Acciones & Índices">
-                                        <option value="stock_tsla_usd" {% if settings.activo == 'stock_tsla_usd' %}selected{% endif %}>Tesla (TSLA)</option>
-                                        <option value="stock_aapl_usd" {% if settings.activo == 'stock_aapl_usd' %}selected{% endif %}>Apple (AAPL)</option>
-                                        <option value="index_spx_500" {% if settings.activo == 'index_spx_500' %}selected{% endif %}>S&P 500</option>
-                                        <option value="index_ndx_100" {% if settings.activo == 'index_ndx_100' %}selected{% endif %}>Nasdaq 100</option>
-                                    </optgroup>
-                                    <optgroup label="Commodities">
-                                        <option value="commodity_oro" {% if settings.activo == 'commodity_oro' %}selected{% endif %}>Oro (XAU/USD)</option>
+
+                                    <optgroup label="Mercado Global">
+                                        <option value="stock_tsla" {% if settings.activo == 'stock_tsla' %}selected{% endif %}>Tesla (TSLA)</option>
+                                        <option value="stock_aapl" {% if settings.activo == 'stock_aapl' %}selected{% endif %}>Apple (AAPL)</option>
+                                        <option value="forex_eur_usd" {% if settings.activo == 'forex_eur_usd' %}selected{% endif %}>EUR / USD</option>
+                                        <option value="commodity_oro" {% if settings.activo == 'commodity_oro' %}selected{% endif %}>Oro (Gold)</option>
                                     </optgroup>
                                 </select>
                             </div>

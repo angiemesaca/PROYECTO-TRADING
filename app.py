@@ -211,6 +211,22 @@ def performance():
     data = vm.get_performance_data(user_id, token)
     return render_template('rendimientos.html', **data)
 
+@app.route('/update_dashboard_asset', methods=['POST'])
+def update_dashboard_asset():
+    if 'user_id' not in session:
+        return redirect(url_for('home'))
+    
+    user_id = session['user_id']
+    token = session['id_token']
+    new_asset = request.form['activo']
+    
+    # Solo actualizamos el campo 'activo', manteniendo lo demás igual
+    # El ViewModel se encarga de mezclarlo con la config existente
+    data = {"activo": new_asset}
+    vm.save_bot_settings_data(user_id, data, token)
+    
+    return redirect(url_for('dashboard'))
+
 @app.route('/run_backtest', methods=['POST'])
 def run_backtest():
     """Ejecuta el backtest (simulación)"""
