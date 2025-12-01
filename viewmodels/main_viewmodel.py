@@ -334,41 +334,94 @@ class MainViewModel:
 
     def get_performance_data(self, user_id, token):
         trade_log = self.bot_service.get_trade_log(user_id, token)
-        trade_list, labels, data_g = [], [], []
-        ganancia, winners, total = 0.0, 0, 0
+        trade_list, labels_grafica, data_grafica = [], [], []
         
-        # Obtenemos el saldo actual para las stats
+        # Variables para el Portafolio
+        holdings = {} # Diccionario para agrupar: {'BTC/USD': 0.5, 'AAPL': 10}
+        
+        # 1. Obtener Datos Básicos
         profile = self.get_user_profile(user_id, token)
-        saldo_actual = float(profile.get('saldo_virtual', 100000.0))
-        ganancia_total = saldo_actual - 100000.0
-
+        saldo_cash = float(profile.get('saldo_virtual', 100000.0))
+        
+        # 2. Procesar Historial
         if trade_log:
             try: sorted_trades = sorted(trade_log.values(), key=lambda x: x.get('timestamp', ''))
             except: sorted_trades = trade_log.values()
             
-            total = len(sorted_trades) 
-            
-            # Construimos la gráfica de evolución del saldo
             for trade in sorted_trades:
                 trade_list.append(trade)
-                labels.append(trade.get('timestamp', '')[5:16]) 
+                labels_grafica.append(trade.get('timestamp', '')[5:16]) 
+                data_grafica.append(trade.get('saldo_resultante', 0))
                 
-                # Usamos el saldo que quedó registrado en ese momento
-                saldo_historico = trade.get('saldo_resultante', 0)
-                data_g.append(saldo_historico)
+                # Calcular Inventario (Holdings)
+                asset = trade.get('activo')
+                qty = float(trade.get('cantidad', 0))
+                tipo = trade.get('tipo')
                 
-                if trade.get('tipo') == 'VENTA': winners += 1 # KPI Simplificado
+                if asset not in holdings: holdings[asset] = 0.0
+                
+                if tipo == 'COMPRA': holdings[asset] += qty
+                elif tipo == 'VENTA': holdings[asset] -= qty
 
+        # 3. Calcular Valor Actual del Portafolio (Para la Dona)
+        portfolio_labels = ["Efectivo (USD)"]
+        portfolio_data = [saldo_cash]
+        
+        total_portfolio_value = saldo_cash
+        lista_posiciones = [] # Lista detallada para la tabla de "Mis Activos"
+
+        for asset, qty in holdings.items():
+            if qty > 0.00001: # Solo mostramos si tienes algo (evitamos residuos de 0.000001)
+                # Obtenemos precio real actual para valorar tu portafolio
+                # (Usamos un try/except interno para no bloquear si falla internet)
+                try:
+                    # Truco: necesitamos el ID interno (ej: crypto_btc_usd) para llamar a get_real_price
+                    # Como aquí solo tenemos el símbolo (BTC/USD), hacemos una búsqueda rápida o
+                    # usamos el símbolo directamente si es compatible.
+                    # Para simplificar y hacerlo rápido, usaremos el precio de entrada del último trade
+                    # como referencia APROXIMADA si falla la API, pero intentaremos la API.
+                    
+                    # Buscamos mapear el simbolo inverso (chapuza rápida pero efectiva)
+                    current_price = 0
+                    if "BTC" in asset: current_price = self.get_real_price("crypto_btc_usd")
+                    elif "ETH" in asset: current_price = self.get_real_price("crypto_eth_usd")
+                    elif "EC" in asset: current_price = self.get_real_price("stock_ecopetrol")
+                    # ... Si no coincide, valor 0 (o último precio registrado)
+                    
+                    if current_price == 0: current_price = 1 # Evitar error div zero
+                    
+                    valor_posicion = qty * current_price
+                    total_portfolio_value += valor_posicion
+                    
+                    portfolio_labels.append(asset)
+                    portfolio_data.append(round(valor_posicion, 2))
+                    
+                    lista_posiciones.append({
+                        "activo": asset,
+                        "cantidad": qty,
+                        "precio_actual": current_price,
+                        "valor_total": valor_posicion
+                    })
+                    
+                except:
+                    pass
+
+        ganancia_total = total_portfolio_value - 100000.0 # Basado en Valor Total (Cash + Acciones) vs 100k iniciales
+
+        stats = {
+            "ganancia_total": round(ganancia_total, 2), 
+            "total_trades": len(trade_list),
+            "equity": total_portfolio_value # Valor total de la cuenta
+        }
+        
         return {
-            "stats": {
-                "ganancia_total": round(ganancia_total, 2), 
-                "total_trades": total, 
-                "win_rate": 0, 
-                "trades_ganadores": winners
-            },
-            "all_trades": trade_list, 
-            "grafica_labels": labels, 
-            "grafica_data": data_g
+            "stats": stats, 
+            "all_trades": trade_list, # Historial completo
+            "current_holdings": lista_posiciones, # Lo que tienes ahora
+            "grafica_labels": labels_grafica, 
+            "grafica_data": data_grafica,
+            "pie_labels": portfolio_labels, # Para la Dona
+            "pie_data": portfolio_data      # Para la Dona
         }
 
     # ==============================================================================

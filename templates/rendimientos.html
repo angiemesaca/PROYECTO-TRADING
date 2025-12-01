@@ -1,36 +1,61 @@
 {% extends "base.html" %}
 
-{% block title %}Rendimiento - Wallet Trainer{% endblock %}
+{% block title %}Portafolio - Wallet Trainer{% endblock %}
 
 {% block content %}
 <div class="row g-4 fade-in">
+    
     <div class="col-12">
-        <h2 class="text-white fw-bold mb-4">Rendimiento de la Cuenta</h2>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+            <div>
+                <h2 class="text-white fw-bold mb-0">Portafolio de Inversión</h2>
+                <p class="text-secondary mb-0 small">Resumen en tiempo real de tus activos y rendimiento.</p>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-success bg-opacity-10 text-success border border-success px-3 py-2">
+                    <i class="bi bi-circle-fill me-1 small"></i> Mercado Abierto
+                </span>
+            </div>
+        </div>
+
         <div class="row g-3">
-            <div class="col-md-3">
-                <div class="card bg-dark border-secondary p-3">
-                    <span class="text-secondary small text-uppercase">Ganancia Total (Simulada)</span>
-                    <h3 class="text-{{ 'success' if stats.ganancia_total >= 0 else 'danger' }} fw-bold mb-0">
-                        ${{ "%.2f"|format(stats.ganancia_total) }}
-                    </h3>
+            <div class="col-md-4">
+                <div class="card bg-dark border-secondary p-4 h-100 position-relative overflow-hidden">
+                    <div class="position-absolute top-0 end-0 p-3 opacity-25">
+                        <i class="bi bi-wallet2 text-primary display-4"></i>
+                    </div>
+                    <span class="text-secondary small text-uppercase ls-1">Patrimonio Total (Equity)</span>
+                    <h1 class="text-white fw-bold my-2">${{ "%.2f"|format(stats.equity) }}</h1>
+                    <div class="small">
+                        <span class="text-{{ 'success' if stats.ganancia_total >= 0 else 'danger' }} fw-bold">
+                            {{ "+" if stats.ganancia_total > 0 else "" }}{{ "%.2f"|format(stats.ganancia_total) }}
+                        </span>
+                        <span class="text-secondary"> PnL Total</span>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="card bg-dark border-secondary p-3">
-                    <span class="text-secondary small text-uppercase">Total Trades</span>
-                    <h3 class="text-white fw-bold mb-0">{{ stats.total_trades }}</h3>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-dark border-secondary p-3">
-                    <span class="text-secondary small text-uppercase">Win Rate</span>
-                    <h3 class="text-info fw-bold mb-0">{{ stats.win_rate }}%</h3>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-dark border-secondary p-3">
-                    <span class="text-secondary small text-uppercase">Saldo Virtual</span>
-                    <h3 class="text-warning fw-bold mb-0">$10,000.00</h3>
+
+            <div class="col-md-8">
+                <div class="row g-3 h-100">
+                    <div class="col-md-4">
+                        <div class="card bg-dark border-secondary p-3 h-100 text-center justify-content-center">
+                            <h4 class="text-info fw-bold mb-0">{{ stats.total_trades }}</h4>
+                            <span class="text-secondary small">Operaciones Totales</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-dark border-secondary p-3 h-100 text-center justify-content-center">
+                            <h4 class="text-warning fw-bold mb-0">{{ current_holdings|length }}</h4>
+                            <span class="text-secondary small">Activos en Cartera</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-dark border-secondary p-3 h-100 text-center justify-content-center">
+                            {% set roi = (stats.ganancia_total / 100000) * 100 %}
+                            <h4 class="text-{{ 'success' if roi >= 0 else 'danger' }} fw-bold mb-0">{{ "%.2f"|format(roi) }}%</h4>
+                            <span class="text-secondary small">Retorno (ROI)</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -38,8 +63,8 @@
 
     <div class="col-lg-8">
         <div class="card bg-dark border-secondary h-100">
-            <div class="card-header border-secondary">
-                <i class="bi bi-graph-up text-primary"></i> Curva de Capital (PnL Acumulado)
+            <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-graph-up text-primary me-2"></i>Curva de Capital</span>
             </div>
             <div class="card-body">
                 <canvas id="pnlChart" style="max-height: 300px;"></canvas>
@@ -50,73 +75,108 @@
     <div class="col-lg-4">
         <div class="card bg-dark border-secondary h-100">
             <div class="card-header border-secondary">
-                <i class="bi bi-lightning-charge text-warning"></i> Herramientas
+                <i class="bi bi-pie-chart text-warning me-2"></i>Distribución de Activos
             </div>
-            <div class="card-body d-flex flex-column gap-3">
-                <div class="alert alert-info bg-opacity-10 border-info text-info small mb-0">
-                    <i class="bi bi-info-circle me-2"></i>
-                    Historial de Paper Trading. Las operaciones afectan tu saldo virtual.
+            <div class="card-body position-relative">
+                <canvas id="allocationChart" style="max-height: 250px;"></canvas>
+                <div class="text-center mt-3 small text-secondary">
+                    Diversificación actual de tu portafolio
                 </div>
-                
-                <form action="{{ url_for('clear_history') }}" method="POST" onsubmit="return confirm('¿Borrar todo el historial? Tu saldo no se reiniciará.');">
-                    <button type="submit" class="btn btn-outline-danger w-100 text-start">
-                        <i class="bi bi-trash me-2"></i> Resetear Historial
-                    </button>
-                </form>
             </div>
         </div>
     </div>
 
     <div class="col-12">
         <div class="card bg-dark border-secondary">
-            <div class="card-header border-secondary d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-list-ul"></i> Historial de Operaciones</span>
-                <span class="badge bg-secondary">{{ stats.total_trades }} registros</span>
+            <div class="card-header border-secondary p-0">
+                <ul class="nav nav-tabs border-0" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active rounded-0 text-uppercase small fw-bold py-3 px-4 text-white bg-transparent border-end border-secondary" id="holdings-tab" data-bs-toggle="tab" data-bs-target="#holdings" type="button" role="tab">
+                            <i class="bi bi-box-seam me-2"></i>Mis Posiciones ({{ current_holdings|length }})
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link rounded-0 text-uppercase small fw-bold py-3 px-4 text-secondary bg-transparent" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
+                            <i class="bi bi-clock-history me-2"></i>Historial de Órdenes
+                        </button>
+                    </li>
+                </ul>
             </div>
+            
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover mb-0 align-middle">
-                        <thead class="bg-black text-secondary small text-uppercase">
-                            <tr>
-                                <th class="ps-4">Fecha</th>
-                                <th>Activo</th>
-                                <th>Tipo</th>
-                                <th>Precio Entrada</th>
-                                <th>Motivo / Señal</th>
-                                <th class="text-end pe-4">PnL</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for trade in trades|reverse %}
-                            <tr>
-                                <td class="ps-4 text-secondary small">{{ trade.timestamp }}</td>
-                                <td class="fw-bold">{{ trade.activo }}</td>
-                                <td>
-                                    {% if trade.tipo == 'COMPRA' %}
-                                        <span class="badge bg-success bg-opacity-25 text-success border border-success">COMPRA</span>
+                <div class="tab-content" id="myTabContent">
+                    
+                    <div class="tab-pane fade show active" id="holdings" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0 align-middle">
+                                <thead class="bg-black text-secondary small text-uppercase">
+                                    <tr>
+                                        <th class="ps-4">Activo</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Actual (Aprox)</th>
+                                        <th class="text-end pe-4">Valor Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in current_holdings %}
+                                    <tr>
+                                        <td class="ps-4 fw-bold text-info">{{ item.activo }}</td>
+                                        <td class="font-monospace">{{ "%.4f"|format(item.cantidad) }}</td>
+                                        <td class="text-secondary">${{ "%.2f"|format(item.precio_actual) }}</td>
+                                        <td class="text-end pe-4 fw-bold text-white">${{ "%.2f"|format(item.valor_total) }}</td>
+                                    </tr>
                                     {% else %}
-                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger">VENTA</span>
-                                    {% endif %}
-                                </td>
-                                <td class="font-monospace">${{ "%.2f"|format(trade.precio_entrada|float) }}</td>
-                                <td class="small text-secondary fst-italic">{{ trade.motivo }}</td>
-                                <td class="text-end pe-4 font-monospace">
-                                    {% set pnl = trade.pnl|default(0)|float %}
-                                    <span class="text-{{ 'success' if pnl >= 0 else 'danger' }}">
-                                        {{ "+" if pnl > 0 else "" }}{{ "%.2f"|format(pnl) }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="6" class="text-center py-5 text-secondary">
-                                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                                    No hay operaciones registradas aún.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    <tr>
+                                        <td colspan="4" class="text-center py-5 text-secondary">
+                                            <i class="bi bi-wallet2 fs-1 d-block mb-3"></i>
+                                            No tienes activos en cartera. Solo tienes Efectivo.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    <tr class="bg-white bg-opacity-10">
+                                        <td class="ps-4 fw-bold text-warning">EFECTIVO (USD)</td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td class="text-end pe-4 fw-bold text-warning">
+                                            ${{ "%.2f"|format(stats.equity - (current_holdings|sum(attribute='valor_total'))) }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="history" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0 align-middle">
+                                <thead class="bg-black text-secondary small text-uppercase">
+                                    <tr>
+                                        <th class="ps-4">Fecha</th>
+                                        <th>Activo</th>
+                                        <th>Acción</th>
+                                        <th>Precio</th>
+                                        <th class="text-end pe-4">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for trade in all_trades|reverse %}
+                                    <tr>
+                                        <td class="ps-4 small text-secondary">{{ trade.timestamp }}</td>
+                                        <td class="fw-bold">{{ trade.activo }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if trade.tipo == 'COMPRA' else 'danger' }} bg-opacity-25 text-{{ 'success' if trade.tipo == 'COMPRA' else 'danger' }} border border-{{ 'success' if trade.tipo == 'COMPRA' else 'danger' }}">
+                                                {{ trade.tipo }}
+                                            </span>
+                                        </td>
+                                        <td class="font-monospace text-secondary">${{ "%.2f"|format(trade.precio_entrada) }}</td>
+                                        <td class="text-end pe-4 font-monospace">${{ "%.2f"|format(trade.total_operacion) }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -127,44 +187,90 @@
 {% block page_scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Configuración del Gráfico de PnL
-    const ctx = document.getElementById('pnlChart');
+    // --- TRUCO PARA EVITAR ERRORES EN VS CODE ---
+    // Envolvemos Jinja en comillas simples '' para que VS Code crea que es un string.
+    // Luego usamos JSON.parse() para convertirlo en los datos reales.
     
-    // Datos inyectados desde Flask
-    const labels = {{ labels | tojson }};
-    const dataPoints = {{ pnl_data | tojson }};
+    let labels = [];
+    let dataPoints = [];
 
-    if (ctx) {
-        new Chart(ctx, {
+    try {
+        // El filtro |safe es importante aquí para evitar problemas con comillas
+        labels = JSON.parse('{{ grafica_labels | tojson | safe }}');
+        dataPoints = JSON.parse('{{ grafica_data | tojson | safe }}');
+    } catch (e) {
+        console.error("Error parseando datos de la gráfica:", e);
+    }
+
+    // --- GRÁFICO DE LÍNEA (Capital) ---
+    const ctxLine = document.getElementById('pnlChart');
+    if (ctxLine) {
+        new Chart(ctxLine, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: labels, // Usamos las variables limpias
                 datasets: [{
-                    label: 'Capital Acumulado ($)',
-                    data: dataPoints,
-                    borderColor: '#0ecb81', // Verde Binance
-                    backgroundColor: 'rgba(14, 203, 129, 0.1)',
+                    label: 'Saldo Histórico',
+                    data: dataPoints, // Usamos las variables limpias
+                    borderColor: '#3d5afe',
+                    backgroundColor: 'rgba(61, 90, 254, 0.1)',
                     borderWidth: 2,
                     tension: 0.4,
+                    fill: true,
                     pointRadius: 0,
-                    fill: true
+                    pointHoverRadius: 5
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
-                    y: {
-                        grid: { color: '#2b3139' },
-                        ticks: { color: '#848e9c' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { display: false } // Ocultamos fechas para limpieza
-                    }
+                    y: { grid: { color: '#2b3139' }, ticks: { color: '#848e9c' } },
+                    x: { display: false }
+                }
+            }
+        });
+    }
+
+    // --- GRÁFICO DE DONA (Asset Allocation) ---
+    const ctxPie = document.getElementById('allocationChart');
+    
+    let pieLabels = [];
+    let pieData = [];
+
+    try {
+        pieLabels = JSON.parse('{{ pie_labels | tojson | safe }}');
+        pieData = JSON.parse('{{ pie_data | tojson | safe }}');
+    } catch (e) {
+        console.error("Error parseando datos del pie chart:", e);
+    }
+
+    if (ctxPie) {
+        new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: pieLabels,
+                datasets: [{
+                    data: pieData,
+                    backgroundColor: [
+                        '#f0b90b', // Amarillo
+                        '#0ecb81', // Verde
+                        '#f6465d', // Rojo
+                        '#3d5afe', // Azul
+                        '#ff6f00', // Naranja
+                        '#00b8d4'  // Cyan
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%', 
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#eaecef', boxWidth: 12 } }
                 }
             }
         });
