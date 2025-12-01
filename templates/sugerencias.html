@@ -116,9 +116,17 @@
 
             <div class="card-footer bg-dark border-top border-secondary p-4">
                 <h6 class="text-secondary text-uppercase small ls-1 mb-3">
-                    <i class="bi bi-joystick me-1"></i> Ejecución Manual (Paper Trading)
+                    <i class="bi bi-joystick me-1"></i> Ejecución Manual
                 </h6>
                 
+                <div class="mb-3">
+                    <label class="text-white-50 small mb-1">Cantidad a operar:</label>
+                    <div class="input-group">
+                        <input type="number" id="trade-amount" class="form-control bg-black text-white border-secondary font-monospace" placeholder="Ej: 0.5 BTC o 10 Acciones" step="0.0001">
+                        <span class="input-group-text bg-secondary border-secondary text-dark fw-bold">UNITS</span>
+                    </div>
+                </div>
+
                 <div class="row g-2">
                     <div class="col-md-6">
                         <button id="btn-buy" class="btn btn-outline-success w-100 py-3 fw-bold text-uppercase d-flex align-items-center justify-content-center gap-2" disabled onclick="executeTrade('COMPRA')">
@@ -237,37 +245,60 @@ document.addEventListener('DOMContentLoaded', () => {
 function executeTrade(action) {
     if (!selectedAssetId) return;
 
+    // Obtener cantidad del input
+    const amountInput = document.getElementById('trade-amount');
+    const quantity = amountInput.value;
+
+    if (!quantity || quantity <= 0) {
+        alert("Por favor ingresa una cantidad válida mayor a 0");
+        return;
+    }
+
     const statusDiv = document.getElementById('trade-status');
-    statusDiv.innerHTML = `<span class="text-warning blink-text">ENVIANDO ORDEN AL MERCADO...</span>`;
+    statusDiv.innerHTML = `<span class="text-warning blink-text">PROCESANDO ORDEN...</span>`;
     
-    // Deshabilitar botones para evitar doble click accidental
     document.getElementById('btn-buy').disabled = true;
     document.getElementById('btn-sell').disabled = true;
 
     fetch("{{ url_for('manual_trade') }}", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asset: selectedAssetId, action: action })
+        body: JSON.stringify({ 
+            asset: selectedAssetId, 
+            action: action,
+            quantity: quantity // Enviamos la cantidad
+        })
     })
     .then(response => response.json())
     .then(data => {
-        // Rehabilitar botones
         document.getElementById('btn-buy').disabled = false;
         document.getElementById('btn-sell').disabled = false;
 
         if (data.success) {
             statusDiv.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle"></i> ${data.message}</span>`;
-            // OPCIONAL: Si quieres que el saldo se actualice solo sin recargar la página,
-            // necesitaríamos que el backend devuelva el nuevo saldo y actualizarlo aquí.
-            // Por ahora, al recargar la página se verá el saldo nuevo.
+            
+            // --- ACTUALIZAR SALDO VISUALMENTE AL INSTANTE ---
+            if (data.new_balance) {
+                const balanceElement = document.getElementById('live-balance');
+                // Formateamos a moneda
+                balanceElement.innerText = "$" + parseFloat(data.new_balance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                
+                // Efecto visual (flash verde)
+                balanceElement.classList.add('text-white');
+                setTimeout(() => balanceElement.classList.remove('text-white'), 500);
+            }
+            
+            // Limpiar input
+            amountInput.value = "";
         } else {
             statusDiv.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-x-circle"></i> ${data.message}</span>`;
         }
     })
     .catch(error => {
+        console.error(error);
         document.getElementById('btn-buy').disabled = false;
         document.getElementById('btn-sell').disabled = false;
-        statusDiv.innerHTML = `<span class="text-danger">Error de conexión con el Broker.</span>`;
+        statusDiv.innerHTML = `<span class="text-danger">Error de conexión.</span>`;
     });
 }
 </script>

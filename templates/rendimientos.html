@@ -55,16 +55,10 @@
             <div class="card-body d-flex flex-column gap-3">
                 <div class="alert alert-info bg-opacity-10 border-info text-info small mb-0">
                     <i class="bi bi-info-circle me-2"></i>
-                    Las operaciones mostradas aquí son simulaciones de Paper Trading basadas en precios reales.
+                    Historial de Paper Trading. Las operaciones afectan tu saldo virtual.
                 </div>
                 
-                <form action="{{ url_for('run_backtest') }}" method="POST">
-                    <button type="submit" class="btn btn-outline-light w-100 text-start">
-                        <i class="bi bi-play-btn me-2"></i> Ejecutar Backtest Rápido
-                    </button>
-                </form>
-
-                <form action="{{ url_for('clear_history') }}" method="POST" onsubmit="return confirm('¿Borrar todo el historial?');">
+                <form action="{{ url_for('clear_history') }}" method="POST" onsubmit="return confirm('¿Borrar todo el historial? Tu saldo no se reiniciará.');">
                     <button type="submit" class="btn btn-outline-danger w-100 text-start">
                         <i class="bi bi-trash me-2"></i> Resetear Historial
                     </button>

@@ -389,14 +389,24 @@ def manual_trade():
     user_id = session['user_id']
     token = session['id_token']
     
-    # Recibimos datos del JS (asset y action)
     data = request.get_json()
     asset_id = data.get('asset')
-    action = data.get('action') # "COMPRA" o "VENTA"
+    action = data.get('action')
     
-    success, message = vm.execute_manual_trade(user_id, token, asset_id, action)
+    # --- CAMBIO: LEER CANTIDAD ---
+    try:
+        quantity = float(data.get('quantity', 0))
+    except:
+        quantity = 0
     
-    return jsonify({"success": success, "message": message})
+    # Pasamos quantity y recibimos el nuevo saldo (new_balance)
+    success, message, new_balance = vm.execute_manual_trade(user_id, token, asset_id, action, quantity)
+    
+    return jsonify({
+        "success": success, 
+        "message": message, 
+        "new_balance": new_balance # Enviamos el nuevo saldo al JS
+    })
 
 
 if __name__ == "__main__":

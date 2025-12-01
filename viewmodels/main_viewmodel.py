@@ -83,22 +83,19 @@ class MainViewModel:
                 "username": username, "email": email,
                 "created_at": datetime.datetime.now(datetime.UTC).isoformat(),
                 "selected_market": "crypto", "risk": "medio", "experience": "novato",
-                "saldo_virtual": 10000.0
+                "saldo_virtual": 100000.0 # <--- ¡AHORA SON 100K!
             }
             self.db_service.save_user_profile(uid, profile_data, id_token)
-            default_settings = {
-                "activo": "crypto_btc_usd", "riesgo": "medio",
-                "horario": "00:00-23:59", "indicadores": "RSI, MACD", "isActive": False
-            }
-            self.bot_service.save_bot_settings(uid, default_settings, id_token)
+            # ... (resto igual) ...
             return user
         return None
 
+    # --- CAMBIO 2: SALDO POR DEFECTO 100K ---
     def get_user_profile(self, user_id, token):
         profile = self.db_service.get_user_profile(user_id, token)
         if profile and 'saldo_virtual' not in profile:
-            profile['saldo_virtual'] = 10000.0
-        return profile if profile else {"username": "Usuario", "saldo_virtual": 10000.0}
+            profile['saldo_virtual'] = 100000.0 # <--- 100K AQUÍ TAMBIÉN
+        return profile if profile else {"username": "Usuario", "saldo_virtual": 100000.0}
 
     def update_user_profile(self, user_id, data, token):
         current_profile = self.get_user_profile(user_id, token)
@@ -363,43 +360,35 @@ class MainViewModel:
         
     # --- PAPER TRADING MANUAL (TIPO ETORO) ---
     def execute_manual_trade(self, user_id, token, asset_id, action, quantity=None):
-        """
-        Ejecuta una compra/venta manual al precio REAL del mercado.
-        Afecta al Saldo Virtual del usuario.
-        """
         try:
-            # 1. Obtener precio real en este instante
+            # 1. Obtener precio real
             current_price = self.get_real_price(asset_id)
-            if current_price == 0: return False, "Mercado cerrado o error de precio."
+            if current_price == 0: return False, "Mercado cerrado o error de precio.", 0
 
-            # 2. Definir cantidad por defecto si no se especifica
-            # (Simplificación: 0.01 para Cripto, 1 para Stocks)
-            if quantity is None:
-                quantity = 1.0 if "stock" in asset_id or "forex" in asset_id else 0.01
+            # 2. Cantidad: Si viene del frontend, usala. Si no, default.
+            if quantity is None or float(quantity) <= 0:
+                quantity = 1.0 
 
-            # 3. Calcular impacto en el saldo
+            quantity = float(quantity)
             total_value = current_price * quantity
             
-            # Obtener saldo actual
             profile = self.get_user_profile(user_id, token)
-            current_balance = float(profile.get('saldo_virtual', 10000.0))
+            current_balance = float(profile.get('saldo_virtual', 100000.0))
 
-            # Lógica de Saldo
             nuevo_saldo = current_balance
+            
             if action == "COMPRA":
                 if current_balance < total_value:
-                    return False, f"Saldo insuficiente (${current_balance:,.2f}) para operar ${total_value:,.2f}"
+                    return False, f"Saldo insuficiente (${current_balance:,.2f}) para operar ${total_value:,.2f}", current_balance
                 nuevo_saldo = current_balance - total_value
             elif action == "VENTA":
-                # En Paper Trading simple, permitimos 'Shorting' (vender sin tener) 
-                # o vender para cerrar. Sumamos al saldo.
+                # Venta suma al saldo
                 nuevo_saldo = current_balance + total_value
 
-            # 4. Guardar todo
-            # A) Actualizar Saldo
+            # 3. Guardar nuevo saldo
             self.update_user_profile(user_id, {"saldo_virtual": nuevo_saldo}, token)
 
-            # B) Registrar Trade en Historial
+            # 4. Guardar Trade
             symbol, _ = self._get_symbol_and_source(asset_id)
             trade_record = {
                 "tipo": action,
@@ -407,15 +396,16 @@ class MainViewModel:
                 "precio_entrada": float(current_price),
                 "cantidad": quantity,
                 "total_operacion": total_value,
-                "saldo_resultante": nuevo_saldo,
-                "pnl": 0.0, # Se calcularía al cerrar posición (avanzado), por ahora 0
+                "saldo_resultante": nuevo_saldo, # Guardamos cuánto quedó
+                "pnl": 0.0,
                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "motivo": "Operación Manual (Paper Trading)"
+                "motivo": f"Manual: {quantity} unidades"
             }
             self.bot_service.record_trade(user_id, trade_record, token)
 
-            return True, f"Orden ejecutada: {action} {quantity} {symbol} a ${current_price:,.2f}"
+            # Retornamos EXITO, MENSAJE, y el NUEVO SALDO para actualizar el frontend
+            return True, f"Orden ejecutada: {action} {quantity} {symbol}", nuevo_saldo
 
         except Exception as e:
             print(f"Error trading manual: {e}")
-            return False, str(e)
+            return False, str(e), 0
