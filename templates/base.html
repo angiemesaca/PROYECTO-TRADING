@@ -80,28 +80,41 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script type="text/javascript">
-        // Script del Ticker (Barra superior)
         window.addEventListener('load', function() {
+            const widgetConfig = {
+              "symbols": [
+                // --- COLOMBIA (ADRs en New York) ---
+                { "proName": "NYSE:EC", "title": "Ecopetrol" },
+                { "proName": "NYSE:CIB", "title": "Bancolombia" },
+                { "proName": "NYSE:AVAL", "title": "Grupo Aval" },
+                { "proName": "NYSE:NU", "title": "NuBank" },
+                
+                // --- CRIPTO PRINCIPAL ---
+                { "proName": "BINANCE:BTCUSDT", "title": "Bitcoin" },
+                { "proName": "BINANCE:ETHUSDT", "title": "Ethereum" },
+                { "proName": "BINANCE:SOLUSDT", "title": "Solana" },
+                
+                // --- FOREX Y COMMODITIES ---
+                { "proName": "FX:EURUSD", "title": "EUR/USD" },
+                { "proName": "OANDA:XAUUSD", "title": "Oro" }
+              ],
+              "showSymbolLogo": true,
+              "colorTheme": "dark",
+              "isTransparent": false,
+              "displayMode": "adaptive",
+              "locale": "es"
+            };
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify(widgetConfig);
+            
             const container = document.getElementById('tv-ticker-tape-widget');
             if (container) {
-                const script = document.createElement('script');
-                script.type = 'text/javascript';
-                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-                script.async = true;
-                script.innerHTML = JSON.stringify({
-                    "symbols": [
-                        { "proName": "BINANCE:BTCUSDT", "title": "Bitcoin" },
-                        { "proName": "BINANCE:ETHUSDT", "title": "Ethereum" },
-                        { "proName": "BINANCE:SOLUSDT", "title": "Solana" },
-                        { "proName": "FX:EURUSD", "title": "EUR/USD" },
-                        { "proName": "NASDAQ:TSLA", "title": "Tesla" }
-                    ],
-                    "showSymbolLogo": true,
-                    "colorTheme": "dark",
-                    "isTransparent": false,
-                    "displayMode": "regular",
-                    "locale": "es"
-                });
+                // Limpiamos cualquier contenido previo por si acaso
+                container.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
                 container.appendChild(script);
             }
         });

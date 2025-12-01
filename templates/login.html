@@ -1,48 +1,40 @@
-{% extends 'base.html' %}
-
-{% block title %}Iniciar Sesión{% endblock %}
-
-{% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6 col-lg-4">
-        
-        <div class="card shadow-lg border-0 bg-dark text-white">
-            <div class="card-body p-4 p-md-5">
-                <h2 class="text-center fw-bold mb-4">Iniciar Sesión</h2>
+<script type="text/javascript">
+        window.addEventListener('load', function() {
+            const widgetConfig = {
+              "symbols": [
+                // --- COLOMBIA (ADRs en New York) ---
+                { "proName": "NYSE:EC", "title": "Ecopetrol" },
+                { "proName": "NYSE:CIB", "title": "Bancolombia" },
+                { "proName": "NYSE:AVAL", "title": "Grupo Aval" },
+                { "proName": "NYSE:NU", "title": "NuBank" },
                 
-                <form action="{{ url_for('login') }}" method="post">
-                    
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Correo Electrónico</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                            <input type="email" class="form-control" name="email" id="email" placeholder="tu@correo.com" required>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="password" class="form-label">Contraseña</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input type="password" class="form-control" name="password" id="password" placeholder="Tu contraseña" required>
-                        </div>
-                    </div>
-
-                    <div class="d-grid mb-3">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-box-arrow-in-right"></i> Entrar
-                        </button>
-                    </div>
-
-                    <div class="text-center">
-                        <a href="{{ url_for('forgot_password') }}" class="text-decoration-none d-block mb-2">¿Olvidaste tu contraseña?</a>
-                        <a href="{{ url_for('register') }}" class="text-decoration-none">¿No tienes cuenta? Regístrate</a>
-                    </div>
-
-                </form>
-            </div>
-        </div>
-
-    </div>
-</div>
-{% endblock %}
+                // --- CRIPTO PRINCIPAL ---
+                { "proName": "BINANCE:BTCUSDT", "title": "Bitcoin" },
+                { "proName": "BINANCE:ETHUSDT", "title": "Ethereum" },
+                { "proName": "BINANCE:SOLUSDT", "title": "Solana" },
+                
+                // --- FOREX Y COMMODITIES ---
+                { "proName": "FX:EURUSD", "title": "EUR/USD" },
+                { "proName": "OANDA:XAUUSD", "title": "Oro" }
+              ],
+              "showSymbolLogo": true,
+              "colorTheme": "dark",
+              "isTransparent": false,
+              "displayMode": "adaptive",
+              "locale": "es"
+            };
+            
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify(widgetConfig);
+            
+            const container = document.getElementById('tv-ticker-tape-widget');
+            if (container) {
+                // Limpiamos cualquier contenido previo por si acaso
+                container.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
+                container.appendChild(script);
+            }
+        });
+    </script>

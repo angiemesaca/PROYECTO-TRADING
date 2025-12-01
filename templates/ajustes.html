@@ -1,87 +1,83 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
-{% block title %}Ajustes de Estrategia{% endblock %}
+{% block title %}Ajustes del Bot{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-4">
-    <div class="col-lg-8"> 
-        <div class="card shadow-sm border-0 bg-dark text-white">
-            <div class="card-body p-4 p-md-5">
-                
-                <h2 class="text-center fw-bold mb-4">
-                    <i class="bi bi-sliders text-primary"></i>
-                    Configuración del Bot
-                </h2>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        
+        <div class="d-flex align-items-center mb-4">
+            <div class="bg-black border border-secondary text-warning rounded-circle d-flex align-items-center justify-content-center me-3 shadow" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                <i class="bi bi-robot"></i>
+            </div>
+            <div>
+                <h2 class="text-white fw-bold mb-0">Configuración del Bot</h2>
+                <p class="text-secondary mb-0">Define los parámetros de tu algoritmo automático.</p>
+            </div>
+        </div>
 
-                <form action="{{ url_for('bot_settings') }}" method="post">
+        <div class="card bg-dark border-secondary shadow-lg">
+            <div class="card-header border-secondary">
+                <i class="bi bi-sliders text-primary me-2"></i>Parámetros de Trading
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('bot_settings') }}" method="POST">
                     
-                    <div class="row g-3 mb-3">
-                        
-                        <div class="col-md-6">
-                            <label for="riesgo" class="form-label fw-bold text-info">Perfil de Riesgo</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-secondary border-secondary text-white"><i class="bi bi-shield-check"></i></span>
-                                <select class="form-select bg-dark text-white border-secondary" name="riesgo" id="riesgo">
-                                    <option value="bajo" {% if settings.riesgo == 'bajo' %}selected{% endif %}>🟢 Bajo (Conservador)</option>
-                                    <option value="medio" {% if settings.riesgo == 'medio' %}selected{% endif %}>🟡 Medio (Balanceado)</option>
-                                    <option value="alto" {% if settings.riesgo == 'alto' %}selected{% endif %}>🔴 Alto (Scalping/Agresivo)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="activo" class="form-label fw-bold text-info">Activo Financiero</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-secondary border-secondary text-white"><i class="bi bi-currency-exchange"></i></span>
-                                <<select class="form-select bg-dark text-white border-secondary" id="activo" name="activo">
-                                    <optgroup label="Criptomonedas">
-                                        <option value="crypto_btc_usd" {% if settings.activo == 'crypto_btc_usd' %}selected{% endif %}>Bitcoin (BTC)</option>
-                                        <option value="crypto_eth_usd" {% if settings.activo == 'crypto_eth_usd' %}selected{% endif %}>Ethereum (ETH)</option>
-                                        <option value="crypto_sol_usd" {% if settings.activo == 'crypto_sol_usd' %}selected{% endif %}>Solana (SOL)</option>
-                                    </optgroup>
+                    <div class="mb-4">
+                        <label for="activo" class="form-label text-white fw-bold">Activo Principal</label>
+                        <select class="form-select bg-black text-white border-secondary" id="activo" name="activo">
+                            <optgroup label="Criptomonedas">
+                                <option value="crypto_btc_usd" {% if settings.activo == 'crypto_btc_usd' %}selected{% endif %}>Bitcoin (BTC)</option>
+                                <option value="crypto_eth_usd" {% if settings.activo == 'crypto_eth_usd' %}selected{% endif %}>Ethereum (ETH)</option>
+                                <option value="crypto_sol_usd" {% if settings.activo == 'crypto_sol_usd' %}selected{% endif %}>Solana (SOL)</option>
+                            </optgroup>
                             
-                                    <optgroup label="Empresas Colombia (ADR)">
-                                        <option value="stock_ecopetrol" {% if settings.activo == 'stock_ecopetrol' %}selected{% endif %}>Ecopetrol (EC)</option>
-                                        <option value="stock_bancolombia" {% if settings.activo == 'stock_bancolombia' %}selected{% endif %}>Bancolombia (CIB)</option>
-                                        <option value="stock_aval" {% if settings.activo == 'stock_aval' %}selected{% endif %}>Grupo Aval (AVAL)</option>
-                                    </optgroup>
+                            <optgroup label="Empresas Colombia (ADR)">
+                                <option value="stock_ecopetrol" {% if settings.activo == 'stock_ecopetrol' %}selected{% endif %}>Ecopetrol (EC)</option>
+                                <option value="stock_bancolombia" {% if settings.activo == 'stock_bancolombia' %}selected{% endif %}>Bancolombia (CIB)</option>
+                                <option value="stock_aval" {% if settings.activo == 'stock_aval' %}selected{% endif %}>Grupo Aval (AVAL)</option>
+                            </optgroup>
 
-                                    <optgroup label="Mercado Global">
-                                        <option value="stock_tsla" {% if settings.activo == 'stock_tsla' %}selected{% endif %}>Tesla (TSLA)</option>
-                                        <option value="stock_aapl" {% if settings.activo == 'stock_aapl' %}selected{% endif %}>Apple (AAPL)</option>
-                                        <option value="forex_eur_usd" {% if settings.activo == 'forex_eur_usd' %}selected{% endif %}>EUR / USD</option>
-                                        <option value="commodity_oro" {% if settings.activo == 'commodity_oro' %}selected{% endif %}>Oro (Gold)</option>
-                                    </optgroup>
-                                </select>
-                            </div>
-                        </div>
+                            <optgroup label="Mercado Global">
+                                <option value="stock_tsla" {% if settings.activo == 'stock_tsla' %}selected{% endif %}>Tesla (TSLA)</option>
+                                <option value="stock_aapl" {% if settings.activo == 'stock_aapl' %}selected{% endif %}>Apple (AAPL)</option>
+                                <option value="forex_eur_usd" {% if settings.activo == 'forex_eur_usd' %}selected{% endif %}>EUR / USD</option>
+                                <option value="commodity_oro" {% if settings.activo == 'commodity_oro' %}selected{% endif %}>Oro (Gold)</option>
+                            </optgroup>
+                        </select>
+                        <div class="form-text text-secondary">El activo sobre el cual el bot buscará oportunidades.</div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="indicadores" class="form-label fw-bold text-info">Indicadores Técnicos</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-secondary border-secondary text-white"><i class="bi bi-graph-up-arrow"></i></span>
-                            <input type="text" class="form-control bg-dark text-white border-secondary" name="indicadores" id="indicadores" value="{{ settings.indicadores }}" required>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-white fw-bold">Nivel de Riesgo</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="riesgo" id="riesgo1" value="bajo" {% if settings.riesgo == 'bajo' %}checked{% endif %}>
+                                <label class="btn btn-outline-success" for="riesgo1">Bajo</label>
+
+                                <input type="radio" class="btn-check" name="riesgo" id="riesgo2" value="medio" {% if settings.riesgo == 'medio' %}checked{% endif %}>
+                                <label class="btn btn-outline-warning" for="riesgo2">Medio</label>
+
+                                <input type="radio" class="btn-check" name="riesgo" id="riesgo3" value="alto" {% if settings.riesgo == 'alto' %}checked{% endif %}>
+                                <label class="btn btn-outline-danger" for="riesgo3">Alto</label>
+                            </div>
                         </div>
-                        <div class="form-text text-white-50">
-                            Ej: RSI (14), EMA (200), Bandas de Bollinger.
+                        <div class="col-md-6">
+                            <label class="form-label text-white fw-bold">Horario Operativo</label>
+                            <input type="text" class="form-control bg-black text-white border-secondary" name="horario" value="{{ settings.horario }}" placeholder="Ej: 09:00-16:00">
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label for="horario" class="form-label fw-bold text-info">Horario de Trading (UTC)</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-secondary border-secondary text-white"><i class="bi bi-clock-history"></i></span>
-                            <input type="text" class="form-control bg-dark text-white border-secondary" name="horario" id="horario" value="{{ settings.horario }}" required>
-                        </div>
+                        <label class="form-label text-white fw-bold">Indicadores Técnicos</label>
+                        <input type="text" class="form-control bg-black text-white border-secondary" name="indicadores" value="{{ settings.indicadores }}" placeholder="Ej: RSI, MACD, Bollinger">
                     </div>
 
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg shadow-lg">
-                            <i class="bi bi-save"></i> Guardar Configuración
+                        <button type="submit" class="btn btn-primary py-2 fw-bold text-dark">
+                            <i class="bi bi-check-lg me-2"></i> Guardar Configuración
                         </button>
                     </div>
-
                 </form>
             </div>
         </div>

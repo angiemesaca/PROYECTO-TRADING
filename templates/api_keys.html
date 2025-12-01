@@ -1,106 +1,73 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}API Keys{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
+<div class="row justify-content-center">
+    <div class="col-lg-8">
         
-        <div class="col-lg-5 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body p-4">
-                    <h2 class="fw-bold mb-4">
-                        <i class="bi bi-key-fill text-primary"></i>
-                        Conectar Exchange
-                    </h2>
-                    
-                    <form action="{{ url_for('api_keys') }}" method="post">
-                        
-                        <div class="mb-3">
-                            <label for="exchange" class="form-label fw-bold">Exchange</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-bank"></i></span>
-                                <select class="form-select" name="exchange" id="exchange" required>
-                                    <option value="" disabled selected>Selecciona un exchange...</option>
-                                    <option value="Binance">Binance</option>
-                                    <option value="Bybit">Bybit</option>
-                                    <option value="OKX">OKX</option>
-                                    <option value="Demo">Cuenta Demo (Simulada)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="api_key" class="form-label fw-bold">API Key</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-terminal"></i></span>
-                                <input type="password" class="form-control" name="api_key" id="api_key" placeholder="Tu API Key" required>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="api_secret" class="form-label fw-bold">API Secret</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-                                <input type="password" class="form-control" name="api_secret" id="api_secret" placeholder="Tu API Secret" required>
-                            </div>
-                        </div>
-
-                        <div class="d-grid mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-plus-circle"></i> Guardar Conexión
-                            </button>
-                        </div>
-                    </form>
-                </div>
+        <div class="d-flex align-items-center mb-4">
+            <div class="bg-black border border-secondary text-info rounded-circle d-flex align-items-center justify-content-center me-3 shadow" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                <i class="bi bi-key-fill"></i>
+            </div>
+            <div>
+                <h2 class="text-white fw-bold mb-0">Gestión de API Keys</h2>
+                <p class="text-secondary mb-0">Conecta tus cuentas de Exchange reales.</p>
             </div>
         </div>
-        
-        <div class="col-lg-7 mb-4">
-            <h2 class="fw-bold mb-4">
-                <i class="bi bi-shield-check"></i>
-                Mis Conexiones
-            </h2>
-            <div class="card shadow-sm">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th scope="col" class="ps-4">Exchange</th>
-                                    <th scope="col">API Key (parcial)</th>
-                                    <th scope="col" class="text-end pe-4">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if keys %}
-                                    {% for key in keys %}
-                                    <tr>
-                                        <td class="ps-4 fw-bold">{{ key.exchange | capitalize }}</td>
-                                        <td>{{ key.api_key[:4] }}...{{ key.api_key[-4:] }}</td>
-                                        
-                                        <td class="text-end pe-3">
-                                            <form action="{{ url_for('delete_api_key') }}" method="post" class_="d-inline">
-                                                <input type="hidden" name="exchange_name" value="{{ key.exchange }}">
-                                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar esta key?');">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                {% else %}
-                                    <tr>
-                                        <td colspan="3" class="text-center text-muted p-4">
-                                            Aún no has conectado ningún exchange.
-                                        </td>
-                                    </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
+
+        <div class="card bg-dark border-secondary shadow-lg mb-4">
+            <div class="card-header border-secondary">
+                <i class="bi bi-plus-circle text-success me-2"></i>Agregar Nueva Llave
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('api_keys') }}" method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" name="exchange" class="form-control bg-black text-white border-secondary" placeholder="Exchange (Ej: Binance)" required>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" name="api_key" class="form-control bg-black text-white border-secondary" placeholder="API Key" required>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="password" name="api_secret" class="form-control bg-black text-white border-secondary" placeholder="API Secret" required>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-success btn-sm fw-bold px-4">Guardar</button>
+                        </div>
                     </div>
-                </div>
+                </form>
             </div>
         </div>
-        
+
+        <div class="card bg-dark border-secondary">
+            <div class="card-header border-secondary">
+                <i class="bi bi-list-ul text-white me-2"></i>Llaves Guardadas
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for key in keys %}
+                <li class="list-group-item bg-dark text-white border-secondary d-flex justify-content-between align-items-center p-3">
+                    <div>
+                        <strong class="text-warning text-uppercase">{{ key.exchange }}</strong>
+                        <div class="text-secondary small font-monospace">
+                            {{ key.api_key[:6] }}...{{ key.api_key[-4:] }}
+                        </div>
+                    </div>
+                    <form action="{{ url_for('delete_api_key') }}" method="POST" onsubmit="return confirm('¿Borrar esta llave?');">
+                        <input type="hidden" name="exchange_name" value="{{ key.exchange }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm border-0">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </li>
+                {% else %}
+                <li class="list-group-item bg-dark text-secondary text-center py-4 border-secondary">
+                    No tienes API Keys guardadas.
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
     </div>
 </div>
 {% endblock %}

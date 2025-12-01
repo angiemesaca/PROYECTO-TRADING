@@ -1,126 +1,79 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Mi Perfil{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-4">
+<div class="row justify-content-center">
     <div class="col-lg-8">
-        
-        <h2 class="text-center fw-bold mb-4">
-            <i class="bi bi-person-gear text-primary"></i>
-            Configuración de la Cuenta
-        </h2>
-
-        <!-- 
-          Usamos Pestañas (Tabs) para organizar la página.
-          Esto es súper profesional.
-        -->
-        <div class="card shadow-sm border-0">
-            <div class="card-header">
-                <!-- Pestañas de Navegación -->
-                <ul class="nav nav-tabs card-header-tabs" id="profileTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="perfil-tab" data-bs-toggle="tab" data-bs-target="#perfil" type="button" role="tab" aria-controls="perfil" aria-selected="true">
-                            <i class="bi bi-person-fill me-1"></i> Mi Perfil
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="seguridad-tab" data-bs-toggle="tab" data-bs-target="#seguridad" type="button" role="tab" aria-controls="seguridad" aria-selected="false">
-                            <i class="bi bi-shield-lock-fill me-1"></i> Seguridad
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="peligro-tab" data-bs-toggle="tab" data-bs-target="#peligro" type="button" role="tab" aria-controls="peligro" aria-selected="false">
-                            <i class="bi bi-exclamation-triangle-fill me-1"></i> Zona de Peligro
-                        </button>
-                    </li>
-                </ul>
+        <div class="d-flex align-items-center mb-4">
+            <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                <i class="bi bi-person-fill"></i>
             </div>
-
-            <div class="card-body p-4 p-md-5">
-                <!-- Contenido de las Pestañas -->
-                <div class="tab-content" id="profileTabContent">
-                    
-                    <!-- Pestaña 1: Mi Perfil -->
-                    <div class="tab-pane fade show active" id="perfil" role="tabpanel" aria-labelledby="perfil-tab">
-                        <h4 class="mb-3">Datos del Perfil</h4>
-                        <p class="text-muted">Cambia tu nombre de usuario visible.</p>
-                        
-                        <form action="{{ url_for('profile') }}" method="post">
-                            
-                            <!-- Campo: Email (Deshabilitado, solo lectura) -->
-                            <div class="mb-3">
-                                <label for="email" class="form-label fw-bold">Correo Electrónico</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-envelope-at-fill"></i></span>
-                                    <input type="email" class="form-control" name="email" id="email" value="{{ profile.email }}" disabled readonly>
-                                </div>
-                                <div class="form-text">Tu correo es tu identificador único. Puedes cambiarlo en la pestaña "Seguridad".</div>
-                            </div>
-                            
-                            <!-- Campo: Username (Editable) -->
-                            <div class="mb-3">
-                                <label for="username" class="form-label fw-bold">Nombre de Usuario</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
-                                    <input type="text" class="form-control" name="username" id="username" value="{{ profile.username }}" required>
-                                </div>
-                            </div>
-                            
-                            <!-- Campos "Legacy" (Ocultos o eliminados) -->
-                            <!-- Ya no mostramos 'risk', 'experience' o 'market', 
-                                 ya que ahora se gestionan en "Ajustes Bot" -->
-                            <input type="hidden" name="risk" value="{{ profile.risk }}">
-                            <input type="hidden" name="experience" value="{{ profile.experience }}">
-                            <input type="hidden" name="market" value="{{ profile.market }}">
-                            
-                            <button type="submit" class="btn btn-primary mt-3">
-                                <i class="bi bi-save"></i> Guardar Nombre de Usuario
-                            </button>
-                        </form>
-                    </div>
-
-                    <!-- Pestaña 2: Seguridad -->
-                    <div class="tab-pane fade" id="seguridad" role="tabpanel" aria-labelledby="seguridad-tab">
-                        <h4 class="mb-3">Credenciales de Acceso</h4>
-                        <p class="text-muted">Por seguridad, se cerrará tu sesión después de cambiar tu correo o contraseña.</p>
-                        
-                        <!-- Formulario Cambiar Email -->
-                        <form action="{{ url_for('change_email') }}" method="post" class="mb-4">
-                            <label for="new_email" class="form-label fw-bold">Cambiar Correo Electrónico</label>
-                            <div class="input-group">
-                                <input type="email" class="form-control" name="new_email" id="new_email" placeholder="nuevo@correo.com" required>
-                                <button type="submit" class="btn btn-outline-secondary">Actualizar Correo</button>
-                            </div>
-                        </form>
-                        
-                        <!-- Formulario Cambiar Contraseña -->
-                        <form action="{{ url_for('change_password') }}" method="post">
-                            <label for="new_password" class="form-label fw-bold">Cambiar Contraseña</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" name="new_password" id="new_password" placeholder="Nueva contraseña (mín. 6)" required minlength="6">
-                                <button type="submit" class="btn btn-outline-secondary">Actualizar Contraseña</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Pestaña 3: Zona de Peligro -->
-                    <div class="tab-pane fade" id="peligro" role="tabpanel" aria-labelledby="peligro-tab">
-                        <h4 class="mb-3 text-danger">Zona de Peligro</h4>
-                        <p>Estas acciones son permanentes y no se pueden deshacer.</p>
-                        
-                        <form action="{{ url_for('delete_profile') }}" method="post" 
-                              onsubmit="return confirm('¿Estás SEGURO de que quieres eliminar tu cuenta? Esto borrará tu perfil, ajustes de bot, historial de trades y API keys.');">
-                            <label class="form-label fw-bold">Eliminar tu cuenta</label>
-                            <p class="text-muted small">Esto borrará todos tus datos permanentemente.</p>
-                            <button type="submit" class="btn btn-danger">
-                                <i class="bi bi-trash"></i> Eliminar mi cuenta
-                            </button>
-                        </form>
-                    </div>
-
-                </div>
+            <div>
+                <h2 class="text-white fw-bold mb-0">Mi Perfil</h2>
+                <p class="text-secondary mb-0">Gestiona tu información personal</p>
             </div>
         </div>
 
+        <div class="card bg-dark border-secondary shadow-lg">
+            <div class="card-header border-secondary">
+                <i class="bi bi-card-heading text-warning me-2"></i>Información de Cuenta
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('profile') }}" method="POST">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Usuario</label>
+                            <input type="text" name="username" class="form-control bg-black border-secondary text-white" value="{{ profile.username }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Email (No editable)</label>
+                            <input type="text" class="form-control bg-dark border-secondary text-secondary" value="{{ profile.email }}" disabled>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Perfil de Riesgo</label>
+                            <select name="risk" class="form-select bg-black border-secondary text-white">
+                                <option value="bajo" {% if profile.risk == 'bajo' %}selected{% endif %}>Bajo (Conservador)</option>
+                                <option value="medio" {% if profile.risk == 'medio' %}selected{% endif %}>Medio (Moderado)</option>
+                                <option value="alto" {% if profile.risk == 'alto' %}selected{% endif %}>Alto (Agresivo)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-white-50 small">Experiencia</label>
+                            <select name="experience" class="form-select bg-black border-secondary text-white">
+                                <option value="novato" {% if profile.experience == 'novato' %}selected{% endif %}>Novato</option>
+                                <option value="intermedio" {% if profile.experience == 'intermedio' %}selected{% endif %}>Intermedio</option>
+                                <option value="experto" {% if profile.experience == 'experto' %}selected{% endif %}>Experto</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="market" value="{{ profile.selected_market }}">
+
+                    <div class="d-flex justify-content-end mt-4">
+                        <button type="submit" class="btn btn-primary px-4 fw-bold">
+                            <i class="bi bi-save me-2"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card bg-dark border-danger mt-4 bg-opacity-10">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="text-danger fw-bold mb-1">Zona de Peligro</h5>
+                    <p class="text-secondary small mb-0">Estas acciones no se pueden deshacer.</p>
+                </div>
+                <form action="{{ url_for('delete_profile') }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar tu cuenta? Perderás todo el progreso.');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar Cuenta</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
