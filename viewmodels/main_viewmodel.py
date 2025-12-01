@@ -150,7 +150,6 @@ class MainViewModel:
             return
 
         # 2. Lógica simple de Trading (Ej: Cruce de Medias Móviles)
-        # Obtenemos velas históricas para decidir
         try:
             ohlcv = self.exchange.fetch_ohlcv(symbol, timeframe='1h', limit=20)
             df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
@@ -171,25 +170,22 @@ class MainViewModel:
                 motivo = f"Precio ({last_close}) cae bajo la Media Móvil ({round(sma_14, 2)})"
             
             # 3. Si hay acción, registramos el Trade simulado en Firebase
-            # (Aquí simplificamos: generamos un registro en el historial)
             if accion != "MANTENER":
                 # Verificamos si ya operamos hace poco para no hacer spam (opcional)
-                # Por ahora, guardamos directo
                 nuevo_trade = {
                     "tipo": accion,
                     "activo": symbol,
-                    "precio_entrada": current_price,
+                    "precio_entrada": float(current_price), # Aseguramos que sea número
                     "cantidad": 0.01, # Fijo por ahora
-                    "pnl": 0.0, # Se calcularía al cerrar
-                    "pnl_acumulado": 0.0, # Requiere lógica extra
+                    "pnl": 0.0,
+                    "pnl_acumulado": 0.0,
                     "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "motivo": motivo
                 }
-                # Usamos el servicio del bot para guardar (simulando que es un log)
-                # Nota: Necesitarías un método 'add_single_trade' en bot_service, 
-                # pero usaremos generate_mock para reutilizar tu estructura si no quieres tocar el service.
-                # Lo ideal es guardar este dict en la lista de trades de Firebase.
-                pass 
+                
+                # --- AQUÍ GUARDAMOS DE VERDAD ---
+                self.bot_service.record_trade(user_id, nuevo_trade, token)
+                print(f"Trade Paper ejecutado: {accion} {symbol}")
                 
         except Exception as e:
             print(f"Error en lógica del bot: {e}")
