@@ -90,6 +90,37 @@ def dashboard():
         settings=data['settings'],
         ai_snippet=ai_snippet
     )
+    
+# --- RUTA 1: MOSTRAR LA PÁGINA DEL CONVERSOR ---
+@app.route('/converter')
+def converter():
+    # Opcional: Si quieres que solo entren usuarios logueados, descomenta la siguiente línea:
+    # if 'user_id' not in session: return redirect(url_for('home'))
+    
+    # Obtenemos la lista de monedas (con categorías) del ViewModel
+    currencies = vm.get_supported_currencies()
+    
+    # Renderizamos la página
+    return render_template('converter.html', currencies=currencies)
+
+# --- RUTA 2: API PARA CALCULAR (EL CEREBRO) ---
+@app.route('/api/convert', methods=['POST'])
+def api_convert():
+    # Recibimos los datos del Javascript (monto, desde, hasta)
+    data = request.get_json()
+    amount = data.get('amount')
+    from_c = data.get('from')
+    to_c = data.get('to')
+    
+    # Llamamos a la función universal del ViewModel
+    result, rate = vm.convert_currency_amount(amount, from_c, to_c)
+    
+    # Devolvemos la respuesta en JSON
+    return jsonify({
+        "result": result,
+        "rate": rate,
+        "success": (rate > 0)
+    })
 
 
 @app.route('/logout')

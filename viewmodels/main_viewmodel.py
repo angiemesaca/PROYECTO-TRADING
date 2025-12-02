@@ -509,6 +509,131 @@ class MainViewModel:
         try: s = self.get_bot_settings_data(u, t); s['isActive'] = False; return self.bot_service.save_bot_settings(u, s, t)
         except: return False
         
+    # ==============================================================================
+    # 7. CONVERSOR UNIVERSAL (MONEDAS + ACTIVOS)
+    # ==============================================================================
+    
+    def get_supported_currencies(self):
+        """Lista agrupada para el select del HTML"""
+        return {
+            "Principales": {
+                "USD": "Dólar Estadounidense ($)",
+                "EUR": "Euro (€)",
+                "GBP": "Libra Esterlina (£)",
+                "CHF": "Franco Suizo (Fr)",
+                "JPY": "Yen Japonés (¥)"
+            },
+            "Latinoamérica": {
+                "COP": "Peso Colombiano",
+                "MXN": "Peso Mexicano",
+                "ARS": "Peso Argentino",
+                "BRL": "Real Brasileño",
+                "CLP": "Peso Chileno",
+                "PEN": "Sol Peruano (S/)",
+                "UYU": "Peso Uruguayo",
+                "VES": "Bolívar Venezolano"
+            },
+            "Asia / Otros": {
+                "KRW": "Won Surcoreano (₩)",
+                "CNY": "Yuan Chino (¥)",
+                "INR": "Rupia India (₹)",
+                "RUB": "Rublo Ruso (₽)",
+                "CAD": "Dólar Canadiense",
+                "AUD": "Dólar Australiano"
+            },
+            "Criptomonedas": {
+                "BTC": "Bitcoin",
+                "ETH": "Ethereum",
+                "SOL": "Solana",
+                "ADA": "Cardano",
+                "DOGE": "Dogecoin",
+                "USDT": "Tether (Stable)"
+            },
+            "Acciones & Commodities": {
+                "EC": "Ecopetrol (ADR)",
+                "CIB": "Bancolombia (ADR)",
+                "AVAL": "Grupo Aval (ADR)",
+                "NU": "NuBank",
+                "TSLA": "Tesla Inc.",
+                "AAPL": "Apple Inc.",
+                "AMZN": "Amazon",
+                "GC=F": "Oro (Onza troy)",
+                "CL=F": "Petróleo Crudo"
+            }
+        }
+
+    def _get_usd_price(self, symbol):
+        """Obtiene el precio de 1 unidad del símbolo en USD."""
+        if symbol == 'USD': return 1.0
+        
+        # 1. Intentamos como Crypto (SYMBOL-USD)
+        if symbol in ['BTC', 'ETH', 'SOL', 'ADA', 'DOGE', 'USDT']:
+            try:
+                t = yf.Ticker(f"{symbol}-USD")
+                return t.fast_info.last_price
+            except: pass
+
+        # 2. Intentamos como Moneda Forex (USD/SYMBOL)
+        # Yahoo cotiza la mayoría así: USDCOP=X (cuántos pesos por 1 dólar)
+        # Entonces el precio de 1 Peso en dólares es 1 / Cotización
+        forex_pairs = ['COP', 'MXN', 'ARS', 'BRL', 'CLP', 'PEN', 'UYU', 'VES', 'KRW', 'CNY', 'INR', 'RUB', 'CAD', 'JPY']
+        if symbol in forex_pairs:
+            try:
+                t = yf.Ticker(f"USD{symbol}=X")
+                rate = t.fast_info.last_price
+                if rate > 0: return 1.0 / rate
+            except: pass
+            
+        # 3. Excepciones Forex Directas (EUR, GBP, AUD se cotizan al revés: EURUSD=X)
+        direct_forex = ['EUR', 'GBP', 'AUD', 'CHF'] # CHF a veces varía, pero probamos directo
+        if symbol in direct_forex:
+            try:
+                # Intento 1: Directo (EURUSD=X)
+                t = yf.Ticker(f"{symbol}USD=X")
+                return t.fast_info.last_price
+            except: 
+                # Intento 2: Inverso (USDCHF=X)
+                try:
+                    t = yf.Ticker(f"USD{symbol}=X")
+                    rate = t.fast_info.last_price
+                    if rate > 0: return 1.0 / rate
+                except: pass
+
+        # 4. Intentamos como Acción/Commodity directa
+        try:
+            t = yf.Ticker(symbol)
+            return t.fast_info.last_price
+        except:
+            return 0.0
+
+    def convert_currency_amount(self, amount, from_curr, to_curr):
+        """
+        Convierte usando USD como puente universal.
+        Formula: (Monto * Precio_Origen_en_USD) / Precio_Destino_en_USD
+        """
+        try:
+            amount = float(amount)
+            if from_curr == to_curr: return amount, 1.0
+
+            # Paso 1: Obtener valor de ambos en Dólares
+            price_from_in_usd = self._get_usd_price(from_curr)
+            price_to_in_usd = self._get_usd_price(to_curr)
+
+            if price_from_in_usd == 0 or price_to_in_usd == 0:
+                return 0.0, 0.0
+
+            # Paso 2: Calcular tasa cruzada
+            # Ejemplo: 1 AAPL ($200) a COP ($0.00023 USD/COP)
+            # Tasa = 200 / 0.00023 = 869,565 COP por acción
+            cross_rate = price_from_in_usd / price_to_in_usd
+            
+            total = amount * cross_rate
+            return total, cross_rate
+
+        except Exception as e:
+            print(f"Error conversión: {e}")
+            return 0.0, 0.0
+        
     def check_bot_execution(self, user_id, token):
         """ Bot automático simplificado. """
         settings = self.get_bot_settings_data(user_id, token)

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Conversor Universal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center fade-in" style="min-height: 70vh;">
+    <div class="col-md-8 col-lg-6">
+        
+        <div class="text-center mb-4">
+            <h2 class="fw-bold text-white ls-1"><i class="bi bi-arrow-repeat text-warning me-2"></i>Conversor Universal</h2>
+            <p class="text-secondary small">Monedas • Criptos • Acciones • Commodities</p>
+        </div>
+
+        <div class="card bg-dark border-secondary shadow-lg">
+            <div class="card-body p-5 position-relative">
+                
+                <div id="loader" class="position-absolute top-50 start-50 translate-middle" style="display: none; z-index: 10;">
+                    <div class="spinner-border text-warning" role="status"></div>
+                </div>
+
+                <div class="row g-3 align-items-center">
+                    
+                    <div class="col-5">
+                        <label class="form-label text-white-50 small fw-bold">DE:</label>
+                        <select id="from_currency" class="form-select bg-black text-white border-secondary fw-bold p-3">
+                            {% for category, items in currencies.items() %}
+                                <optgroup label="{{ category }}">
+                                    {% for code, name in items.items() %}
+                                        <option value="{{ code }}" {% if code == 'USD' %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                        <input type="number" id="amount" class="form-control bg-transparent text-white border-0 fs-2 fw-bold mt-2 ps-0" value="1" placeholder="0.00">
+                    </div>
+
+                    <div class="col-2 text-center">
+                        <button class="btn btn-outline-secondary rounded-circle p-3 shadow" onclick="swapCurrencies()">
+                            <i class="bi bi-arrow-left-right text-white"></i>
+                        </button>
+                    </div>
+
+                    <div class="col-5 text-end">
+                        <label class="form-label text-white-50 small fw-bold">A:</label>
+                        <select id="to_currency" class="form-select bg-black text-white border-secondary fw-bold p-3 text-end">
+                            {% for category, items in currencies.items() %}
+                                <optgroup label="{{ category }}">
+                                    {% for code, name in items.items() %}
+                                        <option value="{{ code }}" {% if code == 'COP' %}selected{% endif %}>{{ name }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                        <div id="result_display" class="fs-2 fw-bold text-success mt-2 text-break">
+                            ...
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-secondary my-4">
+
+                <div class="text-center">
+                    <span class="text-secondary small">Tasa de conversión actual:</span>
+                    <div class="fs-5 text-white fw-bold mt-1">
+                        1 <span id="label_from">USD</span> ≈ <span id="rate_display" class="text-warning">...</span> <span id="label_to">COP</span>
+                    </div>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button class="btn btn-primary fw-bold py-2" onclick="convert()">
+                        <i class="bi bi-calculator me-2"></i> CALCULAR
+                    </button>
+                </div>
+
+            </div>
+        </div>
+        
+        <div class="row mt-4 text-center g-2 justify-content-center">
+            <div class="col-auto">
+                <button onclick="setPair('USD', 'COP')" class="btn btn-sm btn-dark border-secondary rounded-pill px-3">USD ↔ COP</button>
+            </div>
+            <div class="col-auto">
+                <button onclick="setPair('EUR', 'USD')" class="btn btn-sm btn-dark border-secondary rounded-pill px-3">EUR ↔ USD</button>
+            </div>
+            <div class="col-auto">
+                <button onclick="setPair('BTC', 'COP')" class="btn btn-sm btn-dark border-secondary rounded-pill px-3">BTC ↔ COP</button>
+            </div>
+            <div class="col-auto">
+                <button onclick="setPair('EC', 'COP')" class="btn btn-sm btn-dark border-secondary rounded-pill px-3">Ecopetrol ↔ COP</button>
+            </div>
+            <div class="col-auto">
+                <button onclick="setPair('KRW', 'USD')" class="btn btn-sm btn-dark border-secondary rounded-pill px-3">Won ↔ USD</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+    const amountInput = document.getElementById('amount');
+    const fromSelect = document.getElementById('from_currency');
+    const toSelect = document.getElementById('to_currency');
+    const resultDisplay = document.getElementById('result_display');
+    const rateDisplay = document.getElementById('rate_display');
+    const labelFrom = document.getElementById('label_from');
+    const labelTo = document.getElementById('label_to');
+    const loader = document.getElementById('loader');
+
+    function convert() {
+        const amount = amountInput.value;
+        const from = fromSelect.value;
+        const to = toSelect.value;
+
+        if(!amount || amount <= 0) return;
+
+        resultDisplay.style.opacity = '0.3';
+        loader.style.display = 'block';
+
+        fetch("{{ url_for('api_convert') }}", {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ amount: amount, from: from, to: to })
+        })
+        .then(res => res.json())
+        .then(data => {
+            loader.style.display = 'none';
+            resultDisplay.style.opacity = '1';
+
+            if(data.success) {
+                // Formato inteligente de decimales
+                let decimals = 2;
+                if(data.result < 1) decimals = 6; // Para criptos pequeñas
+                if(data.result > 1000) decimals = 2;
+
+                let formattedResult = parseFloat(data.result).toLocaleString('en-US', {
+                    minimumFractionDigits: 0, 
+                    maximumFractionDigits: decimals
+                });
+                
+                let formattedRate = parseFloat(data.rate).toLocaleString('en-US', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: (data.rate < 0.01) ? 8 : 4
+                });
+                
+                resultDisplay.innerText = formattedResult;
+                rateDisplay.innerText = formattedRate;
+                
+                labelFrom.innerText = fromSelect.options[fromSelect.selectedIndex].text.split(' ')[0]; // Solo el código o nombre corto
+                labelTo.innerText = toSelect.options[toSelect.selectedIndex].text.split(' ')[0];
+            } else {
+                resultDisplay.innerText = "Error";
+            }
+        })
+        .catch(err => {
+            loader.style.display = 'none';
+            resultDisplay.innerText = "Error";
+        });
+    }
+
+    function swapCurrencies() {
+        const temp = fromSelect.value;
+        fromSelect.value = toSelect.value;
+        toSelect.value = temp;
+        convert();
+    }
+
+    function setPair(from, to) {
+        fromSelect.value = from;
+        toSelect.value = to;
+        amountInput.value = 1;
+        convert();
+    }
+
+    let timeout = null;
+    amountInput.addEventListener('keyup', () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(convert, 800);
+    });
+
+    fromSelect.addEventListener('change', convert);
+    toSelect.addEventListener('change', convert);
+
+    // Inicializar
+    window.onload = convert;
+</script>
+{% endblock %}
