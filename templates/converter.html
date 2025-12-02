@@ -129,25 +129,34 @@
             resultDisplay.style.opacity = '1';
 
             if(data.success) {
-                // Formato inteligente de decimales
+                // LÓGICA DE DECIMALES LIMPIA
+                // Si el número es muy pequeño (ej: 1 COP a USD), mostramos 4 decimales para que no salga 0.00
+                // Para todo lo demás, MAXIMO 2 decimales.
                 let decimals = 2;
-                if(data.result < 1) decimals = 6; // Para criptos pequeñas
-                if(data.result > 1000) decimals = 2;
+                if (data.result < 0.01) {
+                    decimals = 4;
+                } else if (data.result % 1 === 0) {
+                    decimals = 0; // Si es entero, sin decimales
+                }
 
                 let formattedResult = parseFloat(data.result).toLocaleString('en-US', {
                     minimumFractionDigits: 0, 
                     maximumFractionDigits: decimals
                 });
                 
-                let formattedRate = parseFloat(data.rate).toLocaleString('en-US', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: (data.rate < 0.01) ? 8 : 4
-                });
-                
+                // Actualizamos pantalla
                 resultDisplay.innerText = formattedResult;
+                
+                // Tasa de cambio (Rate)
+                let rateDecimals = (data.rate < 0.01) ? 6 : 2;
+                let formattedRate = parseFloat(data.rate).toLocaleString('en-US', {
+                    maximumFractionDigits: rateDecimals
+                });
                 rateDisplay.innerText = formattedRate;
                 
-                labelFrom.innerText = fromSelect.options[fromSelect.selectedIndex].text.split(' ')[0]; // Solo el código o nombre corto
+                // Actualizar etiquetas de texto (USD, COP, etc.)
+                // Usamos split para tomar solo el código (ej: "USD" de "USD - Dólar")
+                labelFrom.innerText = fromSelect.options[fromSelect.selectedIndex].text.split(' ')[0];
                 labelTo.innerText = toSelect.options[toSelect.selectedIndex].text.split(' ')[0];
             } else {
                 resultDisplay.innerText = "Error";
@@ -155,7 +164,7 @@
         })
         .catch(err => {
             loader.style.display = 'none';
-            resultDisplay.innerText = "Error";
+            resultDisplay.innerText = "---";
         });
     }
 
